@@ -1,0 +1,426 @@
+{
+  "datasetId": "df-20260919-normal-260919",
+  "schemaVersion": "1.0.0",
+  "scenario": "normal",
+  "generatedAt": "2026-09-19T19:55:33Z",
+  "simulatedAt": "2026-09-19T19:55:33Z",
+  "expiresAt": "2026-09-26T19:55:33Z",
+  "warehouse": {
+    "name": "Central Logistics Hub",
+    "date": "2026-09-19",
+    "shift": "Live operations · local time"
+  },
+  "nowCalling": {
+    "vehicleId": "veh-001",
+    "dockId": "07",
+    "instruction": "PROCEED TO DOCK",
+    "estimatedStart": "21:55"
+  },
+  "vehicles": [
+    {
+      "vehicleId": "veh-001",
+      "plate": "ABC-482",
+      "carrier": "NorthLine Transport",
+      "direction": "Inbound",
+      "loadType": "Inbound Pallets",
+      "palletCount": 19,
+      "appointmentTime": "20:35"
+    },
+    {
+      "vehicleId": "veh-002",
+      "plate": "LNX-728",
+      "carrier": "Lynx Freight",
+      "direction": "Outbound",
+      "loadType": "Outbound Retail",
+      "palletCount": 30,
+      "appointmentTime": "20:46"
+    },
+    {
+      "vehicleId": "veh-003",
+      "plate": "KRD-915",
+      "carrier": "Kardex Logistics",
+      "direction": "Inbound",
+      "loadType": "Outbound Cases",
+      "palletCount": 12,
+      "appointmentTime": "20:57"
+    },
+    {
+      "vehicleId": "veh-004",
+      "plate": "RMV-304",
+      "carrier": "Redmark Haulage",
+      "direction": "Outbound",
+      "loadType": "Inbound Produce",
+      "palletCount": 38,
+      "appointmentTime": "21:08"
+    },
+    {
+      "vehicleId": "veh-005",
+      "plate": "TXP-611",
+      "carrier": "TransPacific",
+      "direction": "Inbound",
+      "loadType": "Temperature Controlled",
+      "palletCount": 22,
+      "appointmentTime": "21:19"
+    },
+    {
+      "vehicleId": "veh-006",
+      "plate": "HNL-448",
+      "carrier": "Horizon Lines",
+      "direction": "Outbound",
+      "loadType": "Inbound Pallets",
+      "palletCount": 22,
+      "appointmentTime": "21:30"
+    },
+    {
+      "vehicleId": "veh-007",
+      "plate": "GVC-839",
+      "carrier": "Green Valley",
+      "direction": "Inbound",
+      "loadType": "Outbound Retail",
+      "palletCount": 17,
+      "appointmentTime": "21:41"
+    },
+    {
+      "vehicleId": "veh-008",
+      "plate": "JTX-490",
+      "carrier": "Jettison Cargo",
+      "direction": "Outbound",
+      "loadType": "Outbound Cases",
+      "palletCount": 13,
+      "appointmentTime": "21:52"
+    },
+    {
+      "vehicleId": "veh-009",
+      "plate": "NVK-201",
+      "carrier": "Novak Supply",
+      "direction": "Inbound",
+      "loadType": "Inbound Produce",
+      "palletCount": 39,
+      "appointmentTime": "22:03"
+    },
+    {
+      "vehicleId": "veh-010",
+      "plate": "DHL-779",
+      "carrier": "Deltaline Haulage",
+      "direction": "Outbound",
+      "loadType": "Temperature Controlled",
+      "palletCount": 29,
+      "appointmentTime": "22:14"
+    },
+    {
+      "vehicleId": "veh-011",
+      "plate": "QRS-582",
+      "carrier": "QuickRoute Systems",
+      "direction": "Inbound",
+      "loadType": "Inbound Pallets",
+      "palletCount": 24,
+      "appointmentTime": "22:25"
+    },
+    {
+      "vehicleId": "veh-012",
+      "plate": "WTR-664",
+      "carrier": "Westland Trucking",
+      "direction": "Outbound",
+      "loadType": "Outbound Retail",
+      "palletCount": 39,
+      "appointmentTime": "22:36"
+    },
+    {
+      "vehicleId": "veh-013",
+      "plate": "BXC-117",
+      "carrier": "Boxcar Express",
+      "direction": "Inbound",
+      "loadType": "Outbound Cases",
+      "palletCount": 23,
+      "appointmentTime": "22:47"
+    },
+    {
+      "vehicleId": "veh-014",
+      "plate": "MTR-305",
+      "carrier": "MetroHaul",
+      "direction": "Outbound",
+      "loadType": "Inbound Produce",
+      "palletCount": 14,
+      "appointmentTime": "22:58"
+    },
+    {
+      "vehicleId": "veh-015",
+      "plate": "PCL-923",
+      "carrier": "Pioneer Carriers",
+      "direction": "Inbound",
+      "loadType": "Temperature Controlled",
+      "palletCount": 14,
+      "appointmentTime": "23:09"
+    }
+  ],
+  "queue": [
+    {
+      "queueId": "queue-1",
+      "position": 1,
+      "vehicleId": "veh-002",
+      "plate": "LNX-728",
+      "carrier": "Lynx Freight",
+      "loadType": "Outbound Retail",
+      "arrivalTime": "21:17",
+      "estimatedCallTime": "21:55",
+      "priority": "Priority"
+    },
+    {
+      "queueId": "queue-2",
+      "position": 2,
+      "vehicleId": "veh-003",
+      "plate": "KRD-915",
+      "carrier": "Kardex Logistics",
+      "loadType": "Outbound Cases",
+      "arrivalTime": "21:26",
+      "estimatedCallTime": "22:10",
+      "priority": "Standard"
+    },
+    {
+      "queueId": "queue-3",
+      "position": 3,
+      "vehicleId": "veh-004",
+      "plate": "RMV-304",
+      "carrier": "Redmark Haulage",
+      "loadType": "Inbound Produce",
+      "arrivalTime": "21:35",
+      "estimatedCallTime": "22:25",
+      "priority": "Delayed"
+    },
+    {
+      "queueId": "queue-4",
+      "position": 4,
+      "vehicleId": "veh-005",
+      "plate": "TXP-611",
+      "carrier": "TransPacific",
+      "loadType": "Temperature Controlled",
+      "arrivalTime": "21:44",
+      "estimatedCallTime": "22:40",
+      "priority": "Documentation check"
+    },
+    {
+      "queueId": "queue-5",
+      "position": 5,
+      "vehicleId": "veh-006",
+      "plate": "HNL-448",
+      "carrier": "Horizon Lines",
+      "loadType": "Inbound Pallets",
+      "arrivalTime": "21:53",
+      "estimatedCallTime": "22:55",
+      "priority": "Standard"
+    },
+    {
+      "queueId": "queue-6",
+      "position": 6,
+      "vehicleId": "veh-007",
+      "plate": "GVC-839",
+      "carrier": "Green Valley",
+      "loadType": "Outbound Retail",
+      "arrivalTime": "22:02",
+      "estimatedCallTime": "23:10",
+      "priority": "Standard"
+    }
+  ],
+  "docks": [
+    {
+      "dockId": "01",
+      "state": "Available",
+      "status": "available",
+      "vehicleId": null,
+      "plate": "—",
+      "carrier": "Ready for assignment",
+      "direction": "All",
+      "progress": 0,
+      "elapsedSeconds": 0,
+      "appointmentTime": "—",
+      "notes": "Operation progressing within planned window."
+    },
+    {
+      "dockId": "02",
+      "state": "Loading",
+      "status": "loading",
+      "vehicleId": "veh-002",
+      "plate": "LNX-728",
+      "carrier": "Lynx Freight",
+      "direction": "Outbound",
+      "progress": 64,
+      "elapsedSeconds": 926,
+      "appointmentTime": "20:46",
+      "notes": "Operation progressing within planned window."
+    },
+    {
+      "dockId": "03",
+      "state": "Unloading",
+      "status": "unloading",
+      "vehicleId": "veh-003",
+      "plate": "KRD-915",
+      "carrier": "Kardex Logistics",
+      "direction": "Inbound",
+      "progress": 69,
+      "elapsedSeconds": 3727,
+      "appointmentTime": "20:57",
+      "notes": "Operation progressing within planned window."
+    },
+    {
+      "dockId": "04",
+      "state": "Loading",
+      "status": "loading",
+      "vehicleId": "veh-004",
+      "plate": "RMV-304",
+      "carrier": "Redmark Haulage",
+      "direction": "Outbound",
+      "progress": 71,
+      "elapsedSeconds": 2601,
+      "appointmentTime": "21:08",
+      "notes": "Operation progressing within planned window."
+    },
+    {
+      "dockId": "05",
+      "state": "Cleaning",
+      "status": "cleaning",
+      "vehicleId": null,
+      "plate": "—",
+      "carrier": "Bay sanitation team",
+      "direction": "All",
+      "progress": 72,
+      "elapsedSeconds": 584,
+      "appointmentTime": "—",
+      "notes": "Post-spill sanitation. Estimated release 07:26."
+    },
+    {
+      "dockId": "06",
+      "state": "Loading",
+      "status": "loading",
+      "vehicleId": "veh-006",
+      "plate": "HNL-448",
+      "carrier": "Horizon Lines",
+      "direction": "Outbound",
+      "progress": 29,
+      "elapsedSeconds": 3136,
+      "appointmentTime": "21:30",
+      "notes": "Operation progressing within planned window."
+    },
+    {
+      "dockId": "07",
+      "state": "Available",
+      "status": "called",
+      "vehicleId": "veh-001",
+      "plate": "ABC-482",
+      "carrier": "NorthLine Transport",
+      "direction": "Inbound",
+      "progress": 0,
+      "elapsedSeconds": 1113,
+      "appointmentTime": "21:41",
+      "notes": "Now calling: driver proceed to Dock 07. Follow safety signage."
+    },
+    {
+      "dockId": "08",
+      "state": "Unloading",
+      "status": "unloading",
+      "vehicleId": "veh-008",
+      "plate": "JTX-490",
+      "carrier": "Jettison Cargo",
+      "direction": "Outbound",
+      "progress": 65,
+      "elapsedSeconds": 2026,
+      "appointmentTime": "21:52",
+      "notes": "Operation progressing within planned window."
+    },
+    {
+      "dockId": "09",
+      "state": "Loading",
+      "status": "loading",
+      "vehicleId": "veh-009",
+      "plate": "NVK-201",
+      "carrier": "Novak Supply",
+      "direction": "Inbound",
+      "progress": 61,
+      "elapsedSeconds": 2630,
+      "appointmentTime": "22:03",
+      "notes": "Operation progressing within planned window."
+    },
+    {
+      "dockId": "10",
+      "state": "Maintenance",
+      "status": "maintenance",
+      "vehicleId": null,
+      "plate": "—",
+      "carrier": "Facilities team",
+      "direction": "All",
+      "progress": 0,
+      "elapsedSeconds": 1125,
+      "appointmentTime": "—",
+      "notes": "Leveler hydraulic service. Next review at 09:00."
+    },
+    {
+      "dockId": "11",
+      "state": "Delayed",
+      "status": "delayed",
+      "vehicleId": "veh-011",
+      "plate": "QRS-582",
+      "carrier": "QuickRoute Systems",
+      "direction": "Inbound",
+      "progress": 18,
+      "elapsedSeconds": 367,
+      "appointmentTime": "22:25",
+      "notes": "Documentation mismatch. Operations lead notified."
+    },
+    {
+      "dockId": "12",
+      "state": "Loading",
+      "status": "loading",
+      "vehicleId": "veh-012",
+      "plate": "WTR-664",
+      "carrier": "Westland Trucking",
+      "direction": "Outbound",
+      "progress": 48,
+      "elapsedSeconds": 392,
+      "appointmentTime": "22:36",
+      "notes": "Operation progressing within planned window."
+    }
+  ],
+  "alerts": [
+    {
+      "alertId": "alert-05",
+      "dockId": "05",
+      "severity": "info",
+      "code": "SAFETY_HOLD",
+      "description": "Post-spill sanitation. Estimated release 07:26.",
+      "action": "Estimated release 07:26",
+      "elapsedSeconds": 584
+    },
+    {
+      "alertId": "alert-10",
+      "dockId": "10",
+      "severity": "warning",
+      "code": "MAINTENANCE",
+      "description": "Leveler hydraulic service. Next review at 09:00.",
+      "action": "Next review at 09:00",
+      "elapsedSeconds": 1125
+    },
+    {
+      "alertId": "alert-11",
+      "dockId": "11",
+      "severity": "critical",
+      "code": "DOCUMENTATION_MISMATCH",
+      "description": "Documentation mismatch. Operations lead notified.",
+      "action": "Operations lead notified",
+      "elapsedSeconds": 367
+    }
+  ],
+  "kpis": {
+    "arrivalsToday": 93,
+    "averageWaitMinutes": 18,
+    "activeDocks": 11,
+    "delayedShipments": 1
+  },
+  "integrity": {
+    "checksum": "f76ebe911d005f494ecea08dc2b6be7fb862e33272cb00da9effbb20e10b00ce",
+    "recordCounts": {
+      "vehicles": 15,
+      "queue": 6,
+      "docks": 12,
+      "alerts": 3
+    }
+  }
+}

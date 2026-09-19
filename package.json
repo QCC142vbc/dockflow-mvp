@@ -6,13 +6,24 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "simulate:generate": "node simulator/src/generate.js",
+    "simulate:normal": "node simulator/src/generate.js --scenario normal",
+    "simulate:busy": "node simulator/src/generate.js --scenario busy-day",
+    "simulate:disruption": "node simulator/src/generate.js --scenario disruption",
+    "simulate:maintenance": "node simulator/src/generate.js --scenario maintenance",
+    "simulate:import": "node simulator/src/import.js",
+    "simulate:validate": "node simulator/src/validate.js",
+    "simulate:serve": "node simulator/src/server.js",
+    "simulate:cleanup": "node simulator/src/cleanup.js"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "vite": "^5.4.10"
+    "react-dom": "^18.3.1"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.3",
+    "vite": "^5.4.10"
+  }
 }

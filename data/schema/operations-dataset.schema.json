@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dockflow.example/schema/operations-dataset.schema.json",
+  "title": "DockFlow Operations Dataset",
+  "type": "object",
+  "required": ["datasetId", "schemaVersion", "scenario", "generatedAt", "simulatedAt", "expiresAt", "warehouse", "vehicles", "queue", "docks", "alerts", "kpis", "integrity"],
+  "properties": {
+    "datasetId": { "type": "string", "pattern": "^df-[a-z0-9-]+$" },
+    "schemaVersion": { "type": "string", "const": "1.0.0" },
+    "scenario": { "type": "string", "enum": ["normal", "busy-day", "disruption", "maintenance"] },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "simulatedAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "warehouse": {
+      "type": "object",
+      "required": ["name", "date", "shift"],
+      "properties": {
+        "name": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "shift": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "vehicles": { "type": "array", "minItems": 1 },
+    "queue": { "type": "array", "minItems": 1 },
+    "docks": { "type": "array", "minItems": 12, "maxItems": 12 },
+    "alerts": { "type": "array" },
+    "kpis": { "type": "object", "required": ["arrivalsToday", "averageWaitMinutes", "activeDocks", "delayedShipments"] },
+    "integrity": { "type": "object", "required": ["checksum", "recordCounts"] }
+  },
+  "additionalProperties": false
+}
