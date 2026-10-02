@@ -123,6 +123,10 @@ export interface ContainerTypeDefinition {
   openTop: boolean
   flatRack: boolean
   active: boolean
+  isoCategory?: string
+  typicalUse?: string
+  temperatureControlled?: boolean
+  adrCompatible?: boolean
   requiredDockCapabilityCode?: string
   notes?: string
 }
@@ -139,8 +143,13 @@ export interface ADRRecord {
   unNumber?: string
   properShippingName?: string
   hazardClass?: ADRHazardClass
+  classificationCode?: string
   packingGroup?: ADRPackingGroup
   tunnelRestrictionCode?: string
+  category?: string
+  source?: string
+  referenceVersion?: string
+  notes?: string
   additionalNotes?: string
 }
 
@@ -192,8 +201,41 @@ export interface HandlingRequirementDefinition {
   active: boolean
   requiredDockCapabilityCode?: string
   description?: string
+  cargoExamples?: string[]
   attributes?: Record<string, HandlingRequirementValue>
 }
+
+export interface PackagingTypeDefinition {
+  packagingTypeId: string
+  name: string
+  material: string
+  reusable: boolean
+  stackable: boolean
+  adrCompatible?: boolean | null
+  typicalCargo: string[]
+  active: boolean
+}
+
+export interface TemperatureProfileDefinition {
+  temperatureProfileId: string
+  name: string
+  minimumCelsius?: number
+  maximumCelsius?: number
+  active: boolean
+  notes?: string
+}
+
+export type CargoCategory =
+  | 'General Cargo'
+  | 'Palletized Cargo'
+  | 'Boxed Cargo'
+  | 'Liquid Cargo'
+  | 'Bulk Cargo'
+  | 'Dangerous Goods'
+  | 'Refrigerated Cargo'
+  | 'Oversized Cargo'
+  | 'Fragile Cargo'
+  | 'High Value Cargo'
 
 export interface CargoRecord {
   cargoId: string
@@ -209,6 +251,13 @@ export interface CargoRecord {
   vehicleId?: string
   shipmentId?: string
   operationId?: string
+  name?: string
+  category?: CargoCategory
+  adrRequired?: boolean
+  packagingTypeId?: string
+  temperatureProfileId?: string
+  specialHandling?: string
+  active?: boolean
   notes?: string
 }
 
@@ -219,6 +268,9 @@ export interface CargoComplianceData {
   adrAuditHistory?: ADRAuditEvent[]
   cargoAssignmentHistory?: CargoAssignmentEvent[]
   handlingRequirements: HandlingRequirementDefinition[]
+  packagingTypes?: PackagingTypeDefinition[]
+  temperatureProfiles?: TemperatureProfileDefinition[]
+  catalogDefaultsVersion?: string
 }
 
 export interface DatasetMetadata {

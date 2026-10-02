@@ -90,9 +90,10 @@ test('edits and duplicates ADR records while recording only factual changes', ()
 
   const copy = duplicateAdrRecord(changed, [original, changed])
   assert.notEqual(copy.adrRecordId, changed.adrRecordId)
-  assert.equal(copy.unNumber, changed.unNumber)
+  assert.equal(copy.status, 'unknown')
+  assert.equal(copy.unNumber, undefined)
   assert.equal(copy.active, true)
-  assert.equal(recordAdrChanges(undefined, copy, '2026-10-02T18:01:00.000Z').some((event) => event.eventType === 'adr-enabled'), true)
+  assert.equal(recordAdrChanges(undefined, copy, '2026-10-02T18:01:00.000Z').some((event) => event.eventType === 'adr-enabled'), false)
 })
 
 test('deactivation preserves cargo references and deletion is blocked while referenced', () => {
@@ -103,6 +104,12 @@ test('deactivation preserves cargo references and deletion is blocked while refe
   assert.equal(deactivated.adrRecords[0].active, false)
   assert.equal(deactivated.cargo[0].adrRecordId, 'adr-fuel')
   assert.equal(deleteAdrRecord({ ...deactivated, cargo: [] }, 'adr-fuel').adrRecords.length, 0)
+
+  const audited = appendAdrAuditHistory(
+    { ...data, cargo: [] },
+    recordAdrChanges(undefined, applicableAdr(), '2026-10-02T18:02:00.000Z'),
+  )
+  assert.throws(() => deleteAdrRecord(audited, 'adr-fuel'), /audit event.*reference/i)
 })
 
 test('dataset export/import retains ADR records and audit history; malformed ADR data is rejected', () => {

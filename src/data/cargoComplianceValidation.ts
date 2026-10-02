@@ -3,6 +3,7 @@ import type {
   ADRAuditEventType,
   ADRPackingGroup,
   ADRStatus,
+  CargoCategory,
   ContainerCategory,
   HandlingRequirementCategory,
   HandlingRequirementValue,
@@ -16,6 +17,10 @@ const ADR_CLASSES: ADRHazardClass[] = ['1', '2', '3', '4.1', '4.2', '4.3', '5.1'
 const PACKING_GROUPS: ADRPackingGroup[] = ['I', 'II', 'III']
 const CONTAINER_CATEGORIES: ContainerCategory[] = ['standard', 'reefer', 'tank', 'open-top', 'flat-rack', 'other']
 const HANDLING_CATEGORIES: HandlingRequirementCategory[] = ['temperature', 'environment', 'security', 'safety', 'physical', 'other']
+const CARGO_CATEGORIES: CargoCategory[] = [
+  'General Cargo', 'Palletized Cargo', 'Boxed Cargo', 'Liquid Cargo', 'Bulk Cargo',
+  'Dangerous Goods', 'Refrigerated Cargo', 'Oversized Cargo', 'Fragile Cargo', 'High Value Cargo',
+]
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
 const isId = (value: unknown): value is string => typeof value === 'string' && ID_PATTERN.test(value)
@@ -24,10 +29,16 @@ const isPositive = (value: unknown): value is number => typeof value === 'number
 const isNonNegative = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0
 const optionalText = (record: Record<string, unknown>, key: string) =>
   record[key] === undefined || typeof record[key] === 'string'
+const optionalBoolean = (record: Record<string, unknown>, key: string) =>
+  record[key] === undefined || typeof record[key] === 'boolean'
+const optionalNullableBoolean = (record: Record<string, unknown>, key: string) =>
+  record[key] === undefined || record[key] === null || typeof record[key] === 'boolean'
 const optionalNonNegative = (record: Record<string, unknown>, key: string) =>
   record[key] === undefined || isNonNegative(record[key])
 const optionalPositive = (record: Record<string, unknown>, key: string) =>
   record[key] === undefined || isPositive(record[key])
+const optionalStringArray = (record: Record<string, unknown>, key: string) =>
+  record[key] === undefined || Array.isArray(record[key]) && record[key].every(isNonEmptyString)
 
 export function validateCargoComplianceData(value: unknown, vehicleIds: ReadonlySet<string>): string[] {
   const errors: string[] = []
@@ -40,16 +51,28 @@ export function validateCargoComplianceData(value: unknown, vehicleIds: Readonly
   }
   if (collectionNames.some((name) => !Array.isArray(value[name]))) return errors
 
+  for (const name of ['packagingTypes', 'temperatureProfiles'] as const) {
+    if (value[name] !== undefined && !Array.isArray(value[name])) fail(`${name} must be an array when provided.`)
+  }
+  if (value.catalogDefaultsVersion !== undefined && !isNonEmptyString(value.catalogDefaultsVersion)) {
+    fail('catalogDefaultsVersion must be non-empty text when provided.')
+  }
+
   const containerTypes = value.containerTypes as unknown[]
   const adrRecords = value.adrRecords as unknown[]
   const handlingRequirements = value.handlingRequirements as unknown[]
   const cargoRecords = value.cargo as unknown[]
+  const packagingTypes = (Array.isArray(value.packagingTypes) ? value.packagingTypes : []) as unknown[]
+  const temperatureProfiles = (Array.isArray(value.temperatureProfiles) ? value.temperatureProfiles : []) as unknown[]
   const containerTypeIds = new Set<string>()
   const containerCodes = new Set<string>()
   const adrRecordIds = new Set<string>()
+  const adrNumbers = new Set<string>()
   const handlingRequirementIds = new Set<string>()
   const handlingCodes = new Set<string>()
   const cargoIds = new Set<string>()
+  const packagingTypeIds = new Set<string>()
+  const temperatureProfileIds = new Set<string>()
 
   for (const entry of containerTypes) {
     if (!isRecord(entry)) {
@@ -63,6 +86,8 @@ export function validateCargoComplianceData(value: unknown, vehicleIds: Readonly
       !isPositive(entry.maxGrossWeightKg) ||
       !['refrigerated', 'tank', 'openTop', 'flatRack', 'active'].every((key) => typeof entry[key] === 'boolean') ||
       !optionalNonNegative(entry, 'tareWeightKg') || !optionalPositive(entry, 'payloadCapacityKg') || !optionalText(entry, 'notes') ||
+      !optionalText(entry, 'isoCategory') || !optionalText(entry, 'typicalUse') ||
+      !optionalBoolean(entry, 'temperatureControlled') || !optionalBoolean(entry, 'adrCompatible') ||
       entry.requiredDockCapabilityCode !== undefined &&
         (!isNonEmptyString(entry.requiredDockCapabilityCode) || !CODE_PATTERN.test(entry.requiredDockCapabilityCode)) ||
       (isNonNegative(entry.tareWeightKg) && isPositive(entry.maxGrossWeightKg) && entry.tareWeightKg >= entry.maxGrossWeightKg) ||
@@ -92,7 +117,9 @@ export function validateCargoComplianceData(value: unknown, vehicleIds: Readonly
       entry.requiredDockCapabilityCode !== undefined &&
         (!isNonEmptyString(entry.requiredDockCapabilityCode) || !CODE_PATTERN.test(entry.requiredDockCapabilityCode)) ||
       !optionalText(entry, 'unNumber') || !optionalText(entry, 'properShippingName') ||
-      !optionalText(entry, 'tunnelRestrictionCode') || !optionalText(entry, 'additionalNotes') ||
+      !optionalText(entry, 'classificationCode') || !optionalText(entry, 'tunnelRestrictionCode') ||
+      !optionalText(entry, 'category') || !optionalText(entry, 'source') ||
+      !optionalText(entry, 'referenceVersion') || !optionalText(entry, 'notes') || !optionalText(entry, 'additionalNotes') ||
       entry.unNumber !== undefined && !UN_NUMBER_PATTERN.test(String(entry.unNumber)) ||
       entry.hazardClass !== undefined && !ADR_CLASSES.includes(entry.hazardClass as ADRHazardClass) ||
       entry.packingGroup !== undefined && !PACKING_GROUPS.includes(entry.packingGroup as ADRPackingGroup) ||
@@ -103,6 +130,11 @@ export function validateCargoComplianceData(value: unknown, vehicleIds: Readonly
     if (isId(adrRecordId)) {
       if (adrRecordIds.has(adrRecordId)) fail(`duplicate adrRecordId ${adrRecordId}.`)
       adrRecordIds.add(adrRecordId)
+    }
+    if (typeof entry.unNumber === 'string' && UN_NUMBER_PATTERN.test(entry.unNumber)) {
+      const normalizedNumber = entry.unNumber.toUpperCase()
+      if (adrNumbers.has(normalizedNumber)) fail(`duplicate UN number ${entry.unNumber}.`)
+      adrNumbers.add(normalizedNumber)
     }
   }
 
@@ -187,6 +219,7 @@ export function validateCargoComplianceData(value: unknown, vehicleIds: Readonly
     if (!isId(handlingRequirementId) || !isNonEmptyString(code) || !CODE_PATTERN.test(code) ||
       !isNonEmptyString(entry.name) || !HANDLING_CATEGORIES.includes(entry.category as HandlingRequirementCategory) ||
       typeof entry.active !== 'boolean' || !optionalText(entry, 'description') ||
+      !optionalStringArray(entry, 'cargoExamples') ||
       entry.requiredDockCapabilityCode !== undefined &&
         (!isNonEmptyString(entry.requiredDockCapabilityCode) || !CODE_PATTERN.test(entry.requiredDockCapabilityCode)) ||
       !validAttributes) {
@@ -202,6 +235,41 @@ export function validateCargoComplianceData(value: unknown, vehicleIds: Readonly
     }
   }
 
+  for (const entry of packagingTypes) {
+    if (!isRecord(entry)) {
+      fail('packaging type entries must be objects.')
+      continue
+    }
+    if (!isId(entry.packagingTypeId) || !isNonEmptyString(entry.name) || !isNonEmptyString(entry.material) ||
+      typeof entry.reusable !== 'boolean' || typeof entry.stackable !== 'boolean' ||
+      !optionalNullableBoolean(entry, 'adrCompatible') || typeof entry.active !== 'boolean' ||
+      !Array.isArray(entry.typicalCargo) || !entry.typicalCargo.every(isNonEmptyString)) {
+      fail(`packaging type ${String(entry.packagingTypeId ?? '(missing ID)')} is malformed.`)
+    }
+    if (isId(entry.packagingTypeId)) {
+      if (packagingTypeIds.has(entry.packagingTypeId)) fail(`duplicate packagingTypeId ${entry.packagingTypeId}.`)
+      packagingTypeIds.add(entry.packagingTypeId)
+    }
+  }
+
+  for (const entry of temperatureProfiles) {
+    if (!isRecord(entry)) {
+      fail('temperature profile entries must be objects.')
+      continue
+    }
+    if (    !isId(entry.temperatureProfileId) || !isNonEmptyString(entry.name) || typeof entry.active !== 'boolean' ||
+    !optionalText(entry, 'notes') ||
+      entry.minimumCelsius !== undefined && (typeof entry.minimumCelsius !== 'number' || !Number.isFinite(entry.minimumCelsius)) ||
+      entry.maximumCelsius !== undefined && (typeof entry.maximumCelsius !== 'number' || !Number.isFinite(entry.maximumCelsius)) ||
+      typeof entry.minimumCelsius === 'number' && typeof entry.maximumCelsius === 'number' && entry.minimumCelsius > entry.maximumCelsius) {
+      fail(`temperature profile ${String(entry.temperatureProfileId ?? '(missing ID)')} is malformed or has an invalid temperature range.`)
+    }
+    if (isId(entry.temperatureProfileId)) {
+      if (temperatureProfileIds.has(entry.temperatureProfileId)) fail(`duplicate temperatureProfileId ${entry.temperatureProfileId}.`)
+      temperatureProfileIds.add(entry.temperatureProfileId)
+    }
+  }
+
   for (const entry of cargoRecords) {
     if (!isRecord(entry)) {
       fail('cargo entries must be objects.')
@@ -212,6 +280,9 @@ export function validateCargoComplianceData(value: unknown, vehicleIds: Readonly
       !isPositive(entry.quantity) || !isNonEmptyString(entry.quantityUnit) ||
       !optionalNonNegative(entry, 'weightKg') || !optionalNonNegative(entry, 'volumeM3') ||
       !Array.isArray(requirementRefs) || !optionalText(entry, 'notes') ||
+      !optionalText(entry, 'name') || !optionalText(entry, 'specialHandling') ||
+      entry.category !== undefined && !CARGO_CATEGORIES.includes(entry.category as CargoCategory) ||
+      !optionalBoolean(entry, 'adrRequired') || !optionalBoolean(entry, 'active') ||
       ['shipmentId', 'operationId'].some((key) => entry[key] !== undefined && !isId(entry[key])) ||
       vehicleId !== undefined && !isId(vehicleId)) {
       fail(`cargo record ${String(cargoId ?? '(missing ID)')} is malformed or has invalid quantities/measurements.`)
@@ -225,6 +296,15 @@ export function validateCargoComplianceData(value: unknown, vehicleIds: Readonly
     }
     if (adrRecordId !== undefined && (!isId(adrRecordId) || !adrRecordIds.has(adrRecordId))) {
       fail(`cargo ${String(cargoId)} references unknown adrRecordId ${String(adrRecordId)}.`)
+    }
+    if (entry.packagingTypeId !== undefined && (!isId(entry.packagingTypeId) || !packagingTypeIds.has(entry.packagingTypeId))) {
+      fail(`cargo ${String(cargoId)} references unknown packagingTypeId ${String(entry.packagingTypeId)}.`)
+    }
+    if (entry.temperatureProfileId !== undefined && (!isId(entry.temperatureProfileId) || !temperatureProfileIds.has(entry.temperatureProfileId))) {
+      fail(`cargo ${String(cargoId)} references unknown temperatureProfileId ${String(entry.temperatureProfileId)}.`)
+    }
+    if (entry.adrRequired === true && adrRecordId === undefined) {
+      fail(`cargo ${String(cargoId)} requires an ADR reference when adrRequired is true.`)
     }
     if (vehicleId !== undefined && (!isId(vehicleId) || !vehicleIds.has(vehicleId))) {
       fail(`cargo ${String(cargoId)} references unknown vehicleId ${String(vehicleId)}.`)

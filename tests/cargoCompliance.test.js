@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import demoDataset from '../data/examples/demo-dataset.json' with { type: 'json' }
 import { validateOperationsDataset, recalculateDatasetIntegrity } from '../src/data/datasetFactory.ts'
 import { validateDataset } from '../simulator/src/validate.js'
+import { createStarterMasterData, mergeStarterMasterData } from '../src/data/masterDataDefaults.ts'
 
 const validCargoCompliance = () => ({
   containerTypes: [{
@@ -126,6 +127,81 @@ test('continues to accept legacy datasets without Cargo & Compliance data', () =
   assert.equal(validateDataset(legacy).valid, true)
 })
 
+test('creates a versioned editable master-data catalog that validates and round-trips', () => {
+  const masterData = createStarterMasterData()
+  assert.equal(masterData.catalogDefaultsVersion, '1')
+  assert.equal(masterData.containerTypes.length, 12)
+  assert.equal(masterData.packagingTypes?.length, 12)
+  assert.equal(masterData.handlingRequirements.length, 15)
+  assert.equal(masterData.temperatureProfiles?.length, 8)
+  assert.equal(masterData.cargo.length, 16)
+  assert.ok(masterData.handlingRequirements.every((item) => item.cargoExamples?.length === 2))
+  assert.ok(masterData.packagingTypes?.every((item) => item.typicalCargo.length >= 2))
+  assert.equal(masterData.adrRecords.length, 0)
+
+  const dataset = datasetWithCargo(masterData)
+  assert.deepEqual(validateOperationsDataset(dataset), { valid: true, errors: [] })
+  assert.equal(validateDataset(dataset).valid, true)
+  const imported = JSON.parse(JSON.stringify(dataset))
+  assert.deepEqual(validateOperationsDataset(imported), { valid: true, errors: [] })
+  assert.equal(imported.cargoCompliance.packagingTypes.length, 12)
+  assert.equal(imported.cargoCompliance.temperatureProfiles.length, 8)
+})
+
+test('starter catalog migration preserves user records and does not reapply after initialization', () => {
+  const userContainer = {
+    containerTypeId: 'container-user',
+    code: '20STD',
+    name: 'User Standard Container',
+    category: 'standard',
+    nominalLengthM: 5.9,
+    widthM: 2.35,
+    heightM: 2.39,
+    maxGrossWeightKg: 30000,
+    refrigerated: false,
+    tank: false,
+    openTop: false,
+    flatRack: false,
+    active: true,
+  }
+  const migrated = mergeStarterMasterData({
+    ...validCargoCompliance(),
+    cargo: [],
+    containerTypes: [userContainer],
+  })
+  assert.equal(migrated.containerTypes.find((record) => record.containerTypeId === userContainer.containerTypeId)?.name, userContainer.name)
+  assert.equal(migrated.containerTypes.some((record) => record.containerTypeId === 'container-20-standard'), false)
+  assert.ok(migrated.cargo.length > 0)
+
+  const afterUserEdit = {
+    ...migrated,
+    cargo: migrated.cargo.map((record) => ({ ...record, name: `Custom ${record.name}` })),
+  }
+  assert.equal(mergeStarterMasterData(afterUserEdit), afterUserEdit)
+  assert.ok(afterUserEdit.cargo.every((record) => record.name.startsWith('Custom ')))
+})
+
+test('validates packaging references, ADR-required references, and temperature ranges', () => {
+  const data = createStarterMasterData()
+  const dataset = datasetWithCargo(data)
+  const temperature = data.temperatureProfiles.find((item) => item.temperatureProfileId === 'temp-frozen')
+  assert.equal(temperature.minimumCelsius, -18)
+
+  const invalid = structuredClone(data)
+  invalid.cargo[0].packagingTypeId = 'missing-packaging'
+  invalid.cargo[0].temperatureProfileId = 'missing-temperature'
+  invalid.cargo[1].adrRequired = true
+  invalid.temperatureProfiles[0].minimumCelsius = 30
+  invalid.temperatureProfiles[0].maximumCelsius = 20
+  const result = validateOperationsDataset(datasetWithCargo(invalid))
+  assert.equal(result.valid, false)
+  assert.ok(result.errors.some((error) => error.includes('unknown packagingTypeId')))
+  assert.ok(result.errors.some((error) => error.includes('unknown temperatureProfileId')))
+  assert.ok(result.errors.some((error) => error.includes('requires an ADR reference')))
+  assert.ok(result.errors.some((error) => error.includes('temperature profile')))
+  assert.equal(validateDataset(datasetWithCargo(invalid)).valid, false)
+})
+
 test('validates explicitly configured dock capability codes in cargo definitions and docks', () => {
   const configured = validCargoCompliance()
   configured.containerTypes[0].requiredDockCapabilityCode = 'REEFER'
@@ -147,4 +223,12 @@ test('validates explicitly configured dock capability codes in cargo definitions
   const malformed = recalculateDatasetIntegrity(invalid)
   assert.equal(validateOperationsDataset(malformed).valid, false)
   assert.equal(validateDataset(malformed).valid, false)
+})
+
+test('rejects repeated UN numbers even when ADR record IDs differ', () => {
+  const records = validCargoCompliance()
+  records.adrRecords.push({ ...records.adrRecords[0], adrRecordId: 'adr-duplicate-number' })
+  const dataset = datasetWithCargo(records)
+  assert.equal(validateOperationsDataset(dataset).valid, false)
+  assert.equal(validateDataset(dataset).valid, false)
 })

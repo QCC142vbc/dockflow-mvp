@@ -308,6 +308,17 @@
         "handlingRequirements": {
           "type": "array",
           "items": { "$ref": "#/$defs/handlingRequirement" }
+        },
+        "packagingTypes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/packagingType" }
+        },
+        "temperatureProfiles": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/temperatureProfile" }
+        },
+        "catalogDefaultsVersion": {
+          "$ref": "#/$defs/nonEmptyString"
         }
       }
     },
@@ -335,6 +346,10 @@
         "openTop": { "type": "boolean" },
         "flatRack": { "type": "boolean" },
         "active": { "type": "boolean" },
+        "isoCategory": { "type": "string" },
+        "typicalUse": { "type": "string" },
+        "temperatureControlled": { "type": "boolean" },
+        "adrCompatible": { "type": "boolean" },
         "requiredDockCapabilityCode": { "$ref": "#/$defs/cargoCode" },
         "notes": { "type": "string" }
       }
@@ -351,8 +366,13 @@
         "unNumber": { "type": "string", "pattern": "^UN [0-9]{4}$" },
         "properShippingName": { "$ref": "#/$defs/nonEmptyString" },
         "hazardClass": { "enum": ["1", "2", "3", "4.1", "4.2", "4.3", "5.1", "5.2", "6.1", "6.2", "7", "8", "9"] },
+        "classificationCode": { "type": "string" },
         "packingGroup": { "enum": ["I", "II", "III"] },
         "tunnelRestrictionCode": { "$ref": "#/$defs/nonEmptyString" },
+        "category": { "type": "string" },
+        "source": { "type": "string" },
+        "referenceVersion": { "type": "string" },
+        "notes": { "type": "string" },
         "additionalNotes": { "type": "string" }
       },
       "allOf": [
@@ -400,12 +420,47 @@
         "active": { "type": "boolean" },
         "requiredDockCapabilityCode": { "$ref": "#/$defs/cargoCode" },
         "description": { "type": "string" },
+        "cargoExamples": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/nonEmptyString" }
+        },
         "attributes": {
           "type": "object",
           "additionalProperties": {
             "type": ["string", "number", "boolean"]
           }
         }
+      }
+    },
+    "packagingType": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["packagingTypeId", "name", "material", "reusable", "stackable", "typicalCargo", "active"],
+      "properties": {
+        "packagingTypeId": { "$ref": "#/$defs/cargoId" },
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "material": { "$ref": "#/$defs/nonEmptyString" },
+        "reusable": { "type": "boolean" },
+        "stackable": { "type": "boolean" },
+        "adrCompatible": { "type": ["boolean", "null"] },
+        "typicalCargo": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/nonEmptyString" }
+        },
+        "active": { "type": "boolean" }
+      }
+    },
+    "temperatureProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["temperatureProfileId", "name", "active"],
+      "properties": {
+        "temperatureProfileId": { "$ref": "#/$defs/cargoId" },
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "minimumCelsius": { "type": "number" },
+        "maximumCelsius": { "type": "number" },
+        "active": { "type": "boolean" },
+        "notes": { "type": "string" }
       }
     },
     "cargo": {
@@ -430,8 +485,24 @@
         "vehicleId": { "$ref": "#/$defs/cargoId" },
         "shipmentId": { "$ref": "#/$defs/cargoId" },
         "operationId": { "$ref": "#/$defs/cargoId" },
-        "notes": { "type": "string" }
-      }
+        "notes": { "type": "string" },
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "category": { "enum": ["General Cargo", "Palletized Cargo", "Boxed Cargo", "Liquid Cargo", "Bulk Cargo", "Dangerous Goods", "Refrigerated Cargo", "Oversized Cargo", "Fragile Cargo", "High Value Cargo"] },
+        "adrRequired": { "type": "boolean" },
+        "packagingTypeId": { "$ref": "#/$defs/cargoId" },
+        "temperatureProfileId": { "$ref": "#/$defs/cargoId" },
+        "specialHandling": { "type": "string" },
+        "active": { "type": "boolean" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["adrRequired"],
+            "properties": { "adrRequired": { "const": true } }
+          },
+          "then": { "required": ["adrRecordId"] }
+        }
+      ]
     },
     "simulationConfig": {
       "type": "object",

@@ -10,7 +10,13 @@ export function duplicateAdrRecord(source: ADRRecord, existing: readonly ADRReco
     suffix += 1
     adrRecordId = `${source.adrRecordId.slice(0, 75)}-copy-${suffix}`
   }
-  return { ...source, adrRecordId, active: true }
+  return {
+    ...source,
+    adrRecordId,
+    status: 'unknown',
+    active: true,
+    unNumber: undefined,
+  }
 }
 
 export function getAdrRecordReferences(data: CargoComplianceData, adrRecordId: string) {
@@ -33,6 +39,10 @@ export function deleteAdrRecord(data: CargoComplianceData, adrRecordId: string):
   const references = getAdrRecordReferences(data, adrRecordId)
   if (references.length) {
     throw new Error(`Cannot delete this ADR record while ${references.length} cargo record${references.length === 1 ? '' : 's'} reference it. Deactivate it instead.`)
+  }
+  const auditEvents = (data.adrAuditHistory ?? []).filter((event) => event.adrRecordId === adrRecordId)
+  if (auditEvents.length) {
+    throw new Error(`Cannot delete this ADR record while ${auditEvents.length} audit event${auditEvents.length === 1 ? '' : 's'} reference it. Deactivate it instead.`)
   }
   return {
     ...data,
