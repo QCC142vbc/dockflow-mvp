@@ -348,7 +348,6 @@
         "status": { "enum": ["applicable", "not-applicable", "unknown"] },
         "active": { "type": "boolean" },
         "requiredDockCapabilityCode": { "$ref": "#/$defs/cargoCode" },
-        "requiredDockCapabilityCode": { "$ref": "#/$defs/cargoCode" },
         "unNumber": { "type": "string", "pattern": "^UN [0-9]{4}$" },
         "properShippingName": { "$ref": "#/$defs/nonEmptyString" },
         "hazardClass": { "enum": ["1", "2", "3", "4.1", "4.2", "4.3", "5.1", "5.2", "6.1", "6.2", "7", "8", "9"] },
@@ -399,7 +398,6 @@
         "name": { "$ref": "#/$defs/nonEmptyString" },
         "category": { "enum": ["temperature", "environment", "security", "safety", "physical", "other"] },
         "active": { "type": "boolean" },
-        "requiredDockCapabilityCode": { "$ref": "#/$defs/cargoCode" },
         "requiredDockCapabilityCode": { "$ref": "#/$defs/cargoCode" },
         "description": { "type": "string" },
         "attributes": {
@@ -699,11 +697,6 @@
         },
         "notes": {
           "$ref": "#/$defs/nonEmptyString"
-        },
-        "capabilityCodes": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": { "$ref": "#/$defs/cargoCode" }
         },
         "capabilityCodes": {
           "type": "array",

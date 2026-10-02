@@ -61,6 +61,65 @@ function workingState({ queue = [vehicle()], docks = [dock()], calls = [] } = {}
   }
 }
 
+function cargoDataset({ cargo = {}, containerTypes = [], adrRecords = [], handlingRequirements = [] } = {}) {
+  const dataset = structuredClone(demoDataset)
+  const vehicleId = dataset.queue[0].vehicleId
+  dataset.cargoCompliance = {
+    cargo: [{
+      cargoId: 'cargo-1',
+      cargoType: 'General cargo',
+      description: 'Dispatch test cargo',
+      quantity: 1,
+      quantityUnit: 'pallet',
+      handlingRequirementIds: [],
+      vehicleId,
+      ...cargo,
+    }],
+    containerTypes,
+    adrRecords,
+    handlingRequirements,
+  }
+  const record = dataset.vehicles.find((item) => item.vehicleId === vehicleId)
+  return {
+    dataset,
+    vehicleId,
+    dispatchVehicle: vehicle({ vehicleId, plate: record.plate, direction: record.direction }),
+  }
+}
+
+function testContainer(overrides = {}) {
+  return {
+    containerTypeId: 'container-1',
+    code: 'BOX',
+    name: 'Test container',
+    category: 'standard',
+    nominalLengthM: 6,
+    widthM: 2.4,
+    heightM: 2.6,
+    maxGrossWeightKg: 10000,
+    tareWeightKg: 1000,
+    payloadCapacityKg: 8000,
+    refrigerated: false,
+    tank: false,
+    openTop: false,
+    flatRack: false,
+    active: true,
+    ...overrides,
+  }
+}
+
+function testAdr(overrides = {}) {
+  return {
+    adrRecordId: 'adr-1',
+    status: 'applicable',
+    unNumber: 'UN 1203',
+    properShippingName: 'Test dangerous goods',
+    hazardClass: '3',
+    packingGroup: 'II',
+    ...overrides,
+  }
+}
+
 test('recommends an available dock for a waiting vehicle with transparent estimates', () => {
   const item = vehicle()
   const result = recommendDispatch(item, [item], [dock()], 40)
@@ -69,6 +128,109 @@ test('recommends an available dock for a waiting vehicle with transparent estima
   assert.equal(result.estimatedWaitTimeMinutes, 0)
   assert.match(result.reason, /available/i)
   assert.equal(result.confidence, 'moderate')
+})
+
+test('legacy dataset and ordinary cargo remain dispatchable without capability configuration', () => {
+  const item = vehicle()
+  assert.equal(recommendDispatch(item, [item], [dock()], 40).recommendedDockId, '01')
+  const fixture = cargoDataset()
+  assert.equal(recommendDispatch(fixture.dispatchVehicle, [fixture.dispatchVehicle], [dock()], 40, fixture.dataset).recommendedDockId, '01')
+})
+
+test('ADR cargo dispatches only to a dock matching its explicitly configured capability', () => {
+  const fixture = cargoDataset({
+    cargo: { adrRecordId: 'adr-1' },
+    adrRecords: [testAdr({ requiredDockCapabilityCode: 'ADR-3' })],
+  })
+  const result = recommendDispatch(fixture.dispatchVehicle, [fixture.dispatchVehicle], [dock({ capabilityCodes: ['ADR-3'] })], 40, fixture.dataset)
+  assert.equal(result.recommendedDockId, '01')
+  assert.equal(result.alternatives[0].capabilityMatch, 'matched')
+  assert.equal(result.blockedDocks.length, 0)
+})
+
+test('blocking cargo conflict prevents recommendation and manual assignment with exact evidence', () => {
+  const fixture = cargoDataset({
+    cargo: { containerTypeId: 'container-1', weightKg: 9000 },
+    containerTypes: [testContainer()],
+  })
+  const state = workingState({
+    queue: [fixture.dispatchVehicle],
+    docks: [dock()],
+  })
+  state.operationalDataset = fixture.dataset
+  const recommendation = recommendDispatch(fixture.dispatchVehicle, state.queue, state.docks, 40, fixture.dataset)
+  assert.equal(recommendation.recommendedDockId, null)
+  assert.match(recommendation.reason, /9,000 kg.*8,000 kg/)
+  const result = applyDispatchAction(state, { type: 'assign', vehicleId: fixture.vehicleId, dockId: '01' }, timestamp)
+  assert.equal(result.conflicts[0].code, 'CARGO_COMPLIANCE_BLOCK')
+  assert.match(result.conflicts[0].message, /payload.*exceeds/i)
+  assert.deepEqual(result.events.map((event) => event.type), ['dispatch-conflict', 'dispatch-rejected'])
+  assert.equal(result.state.queue.length, 1)
+  assert.equal(result.state.docks[0].vehicleId, null)
+})
+
+test('warning-only ADR uncertainty stays visible without preventing assignment', () => {
+  const fixture = cargoDataset({
+    cargo: { adrRecordId: 'adr-1' },
+    adrRecords: [testAdr({ status: 'unknown', unNumber: undefined, properShippingName: undefined, hazardClass: undefined })],
+  })
+  const state = workingState({ queue: [fixture.dispatchVehicle], docks: [dock()] })
+  state.operationalDataset = fixture.dataset
+  const recommendation = recommendDispatch(fixture.dispatchVehicle, state.queue, state.docks, 40, fixture.dataset)
+  assert.equal(recommendation.recommendedDockId, '01')
+  assert.ok(recommendation.warnings.some((message) => /marked unknown/i.test(message)))
+  const result = applyDispatchAction(state, { type: 'assign', vehicleId: fixture.vehicleId, dockId: '01' }, timestamp)
+  assert.deepEqual(result.conflicts, [])
+  assert.equal(result.state.docks[0].vehicleId, fixture.vehicleId)
+})
+
+test('dock capability mismatch blocks that dock and an unconfigured dock is reported as undetermined', () => {
+  const fixture = cargoDataset({
+    cargo: { containerTypeId: 'container-1' },
+    containerTypes: [testContainer({ requiredDockCapabilityCode: 'REEFER' })],
+  })
+  const item = fixture.dispatchVehicle
+  const knownMismatch = recommendDispatch(item, [item], [dock({ capabilityCodes: [] })], 40, fixture.dataset)
+  assert.equal(knownMismatch.recommendedDockId, null)
+  assert.match(knownMismatch.blockedDocks[0].reasons[0], /lacks required configured capability/i)
+  const unknown = recommendDispatch(item, [item], [dock()], 40, fixture.dataset)
+  assert.equal(unknown.recommendedDockId, null)
+  assert.equal(unknown.blockingConditions[0].code, 'DOCK_COMPATIBILITY_UNDETERMINED')
+  assert.match(unknown.reason, /Insufficient configuration to determine compatibility/)
+  const actionState = workingState({ queue: [item], docks: [dock({ capabilityCodes: [] })] })
+  actionState.operationalDataset = fixture.dataset
+  const rejected = applyDispatchAction(actionState, { type: 'assign', vehicleId: fixture.vehicleId, dockId: '01' }, timestamp)
+  assert.equal(rejected.conflicts[0].code, 'DOCK_CAPABILITY_UNAVAILABLE')
+})
+
+test('multiple eligible docks are listed transparently and assignment decisions are logged', () => {
+  const fixture = cargoDataset({
+    cargo: { adrRecordId: 'adr-1' },
+    adrRecords: [testAdr({ requiredDockCapabilityCode: 'ADR-3' })],
+  })
+  const item = fixture.dispatchVehicle
+  const docks = [dock({ id: '07', capabilityCodes: ['ADR-3'], workloadMinutes: 5 }), dock({ id: '03', capabilityCodes: ['ADR-3'], workloadMinutes: 0 })]
+  const recommendation = recommendDispatch(item, [item], docks, 40, fixture.dataset)
+  assert.equal(recommendation.recommendedDockId, '03')
+  assert.equal(recommendation.alternatives.length, 2)
+  const state = workingState({ queue: [item], docks })
+  state.operationalDataset = fixture.dataset
+  const assigned = applyDispatchAction(state, { type: 'call', vehicleId: fixture.vehicleId, dockId: '03' }, timestamp)
+  assert.deepEqual(assigned.conflicts, [])
+  assert.deepEqual(assigned.events.map((event) => event.type), ['vehicle-called', 'dispatch-recommended', 'dispatch-accepted'])
+  assert.ok(assigned.events.every((event) => event.vehicleId === fixture.vehicleId && event.dockId === '03'))
+})
+
+test('simulation does not auto-assign a vehicle with a blocking cargo conflict', () => {
+  const fixture = cargoDataset({
+    cargo: { containerTypeId: 'container-1', weightKg: 9000 },
+    containerTypes: [testContainer()],
+  })
+  const state = workingState({ queue: [fixture.dispatchVehicle], docks: [dock()] })
+  state.operationalDataset = fixture.dataset
+  const ticked = advanceOperationsState(state, timestamp)
+  assert.equal(ticked.queue.length, 1)
+  assert.equal(ticked.docks[0].vehicleId, null)
 })
 
 test('bundled demo has one coherent queue-to-dock assignment per vehicle', () => {

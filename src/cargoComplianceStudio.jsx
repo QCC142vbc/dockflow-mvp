@@ -15,7 +15,7 @@ const TABS = [
 ]
 const EMPTY_DATA = { cargo: [], containerTypes: [], adrRecords: [], handlingRequirements: [] }
 const newId = (prefix) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
-const numberValue = (value) => value === '' ? undefined : Number(value)
+const numberValue = (value) => value === undefined || value === null || value === '' ? undefined : Number(value)
 const title = (record, tab) => tab === 'cargo' ? record.description : tab === 'containerTypes' ? record.name : tab === 'adrRecords' ? record.properShippingName || record.adrRecordId : record.name
 const recordId = (record, tab) => tab === 'cargo' ? record.cargoId : tab === 'containerTypes' ? record.containerTypeId : tab === 'adrRecords' ? record.adrRecordId : record.handlingRequirementId
 const tabCollection = (tab) => tab
@@ -77,13 +77,15 @@ function CargoComplianceForm({ tab, initial, asNew = false, data, vehicles, onCa
       for (const key of ['nominalLengthM', 'widthM', 'heightM', 'maxGrossWeightKg', 'tareWeightKg', 'payloadCapacityKg']) record[key] = numberValue(form[key])
       if (!record.tareWeightKg) delete record.tareWeightKg
       if (!record.payloadCapacityKg) delete record.payloadCapacityKg
+      if (!record.requiredDockCapabilityCode) delete record.requiredDockCapabilityCode
       if (!record.notes) delete record.notes
     } else if (tab === 'adrRecords') {
-      for (const key of ['unNumber', 'properShippingName', 'hazardClass', 'packingGroup', 'tunnelRestrictionCode', 'additionalNotes']) {
+      for (const key of ['unNumber', 'properShippingName', 'hazardClass', 'packingGroup', 'tunnelRestrictionCode', 'additionalNotes', 'requiredDockCapabilityCode']) {
         if (!record[key]) delete record[key]
       }
     } else {
       if (!record.description) delete record.description
+      if (!record.requiredDockCapabilityCode) delete record.requiredDockCapabilityCode
       try {
         const attributes = attributesText.trim() ? JSON.parse(attributesText) : {}
         if (!attributes || typeof attributes !== 'object' || Array.isArray(attributes)) {
@@ -163,6 +165,7 @@ function CargoComplianceForm({ tab, initial, asNew = false, data, vehicles, onCa
             <TextField label="Max gross weight (kg)" type="number" min="0.001" step="any" value={form.maxGrossWeightKg} onChange={(v) => set('maxGrossWeightKg', v)} required />
             <TextField label="Tare weight (kg)" type="number" min="0" step="any" value={form.tareWeightKg} onChange={(v) => set('tareWeightKg', v)} />
             <TextField label="Payload capacity (kg)" type="number" min="0.001" step="any" value={form.payloadCapacityKg} onChange={(v) => set('payloadCapacityKg', v)} />
+            <TextField label="Required dock capability code (optional)" value={form.requiredDockCapabilityCode} onChange={(v) => set('requiredDockCapabilityCode', v)} placeholder="e.g. REEFER" />
             <div className="cc-toggle-grid"><ToggleField label="Refrigerated" checked={form.refrigerated} onChange={(v) => set('refrigerated', v)} /><ToggleField label="Tank" checked={form.tank} onChange={(v) => set('tank', v)} /><ToggleField label="Open top" checked={form.openTop} onChange={(v) => set('openTop', v)} /><ToggleField label="Flat rack" checked={form.flatRack} onChange={(v) => set('flatRack', v)} /><ToggleField label="Active" checked={form.active} onChange={(v) => set('active', v)} /></div>
             <label className="cc-field cc-wide"><span>Notes</span><textarea value={form.notes ?? ''} onChange={(event) => set('notes', event.target.value)} rows="3" /></label>
           </>}
@@ -174,6 +177,7 @@ function CargoComplianceForm({ tab, initial, asNew = false, data, vehicles, onCa
             <SelectField label="Hazard class" value={form.hazardClass} onChange={(v) => set('hazardClass', v)}><option value="">Not specified</option>{['1', '2', '3', '4.1', '4.2', '4.3', '5.1', '5.2', '6.1', '6.2', '7', '8', '9'].map((v) => <option key={v} value={v}>Class {v}</option>)}</SelectField>
             <SelectField label="Packing group" value={form.packingGroup} onChange={(v) => set('packingGroup', v)}><option value="">Not specified</option>{['I', 'II', 'III'].map((v) => <option key={v} value={v}>{v}</option>)}</SelectField>
             <TextField label="Tunnel restriction" value={form.tunnelRestrictionCode} onChange={(v) => set('tunnelRestrictionCode', v)} />
+            <TextField label="Required dock capability code (optional)" value={form.requiredDockCapabilityCode} onChange={(v) => set('requiredDockCapabilityCode', v)} placeholder="Explicit configuration only" />
               <ToggleField label="Record active" checked={form.active} onChange={(v) => set('active', v)} />
               <label className="cc-field cc-wide"><span>Additional notes</span><textarea value={form.additionalNotes ?? ''} onChange={(event) => set('additionalNotes', event.target.value)} rows="3" /></label>
           </>}
@@ -182,6 +186,7 @@ function CargoComplianceForm({ tab, initial, asNew = false, data, vehicles, onCa
             <TextField label="Code" value={form.code} onChange={(v) => set('code', v)} required />
             <TextField label="Name" value={form.name} onChange={(v) => set('name', v)} required />
             <SelectField label="Category" value={form.category} onChange={(v) => set('category', v)}>{['temperature', 'environment', 'security', 'safety', 'physical', 'other'].map((v) => <option key={v} value={v}>{v}</option>)}</SelectField>
+            <TextField label="Required dock capability code (optional)" value={form.requiredDockCapabilityCode} onChange={(v) => set('requiredDockCapabilityCode', v)} placeholder="e.g. SECURE" />
             <ToggleField label="Active" checked={form.active} onChange={(v) => set('active', v)} />
             <label className="cc-field cc-wide"><span>Description</span><textarea value={form.description ?? ''} onChange={(event) => set('description', event.target.value)} rows="2" /></label>
             <label className="cc-field cc-wide"><span>Attributes (JSON object, optional)</span><textarea value={attributesText} onChange={(event) => setAttributesText(event.target.value)} rows="4" spellCheck="false" /><small>Use scalar values such as temperature limits or security level.</small></label>
@@ -196,9 +201,9 @@ function CargoComplianceForm({ tab, initial, asNew = false, data, vehicles, onCa
 
 function createForm(tab) {
   if (tab === 'cargo') return { cargoId: newId('cargo'), cargoType: '', description: '', quantity: '1', quantityUnit: 'units', weightKg: '', volumeM3: '', containerTypeId: '', adrRecordId: '', handlingRequirementIds: [], vehicleId: '', shipmentId: '', operationId: '', notes: '' }
-  if (tab === 'containerTypes') return { containerTypeId: newId('container'), code: '', name: '', category: 'standard', nominalLengthM: '', widthM: '', heightM: '', maxGrossWeightKg: '', tareWeightKg: '', payloadCapacityKg: '', refrigerated: false, tank: false, openTop: false, flatRack: false, active: true, notes: '' }
-  if (tab === 'adrRecords') return { adrRecordId: newId('adr'), status: 'unknown', active: true, unNumber: '', properShippingName: '', hazardClass: '', packingGroup: '', tunnelRestrictionCode: '', additionalNotes: '' }
-  return { handlingRequirementId: newId('handling'), code: '', name: '', category: 'other', active: true, description: '', attributes: {} }
+  if (tab === 'containerTypes') return { containerTypeId: newId('container'), code: '', name: '', category: 'standard', nominalLengthM: '', widthM: '', heightM: '', maxGrossWeightKg: '', tareWeightKg: '', payloadCapacityKg: '', refrigerated: false, tank: false, openTop: false, flatRack: false, active: true, requiredDockCapabilityCode: '', notes: '' }
+  if (tab === 'adrRecords') return { adrRecordId: newId('adr'), status: 'unknown', active: true, requiredDockCapabilityCode: '', unNumber: '', properShippingName: '', hazardClass: '', packingGroup: '', tunnelRestrictionCode: '', additionalNotes: '' }
+  return { handlingRequirementId: newId('handling'), code: '', name: '', category: 'other', active: true, requiredDockCapabilityCode: '', description: '', attributes: {} }
 }
 
 function describeRecord(record, tab, data) {
@@ -208,9 +213,9 @@ function describeRecord(record, tab, data) {
     const requirements = (record.handlingRequirementIds ?? []).map((id) => data.handlingRequirements.find((item) => item.handlingRequirementId === id)?.name).filter(Boolean)
     return `${record.cargoType || 'Cargo'} · ${record.weightKg === undefined ? 'Weight n/a' : `${record.weightKg} kg`} · ${container?.code ?? 'No container'} · ADR ${adr?.status ?? 'unknown'} · ${requirements.length ? requirements.join(', ') : 'No special handling'}`
   }
-  if (tab === 'containerTypes') return `${record.code} · ${record.category} · ${record.nominalLengthM} × ${record.widthM} × ${record.heightM} m · ${record.payloadCapacityKg ?? '—'} kg payload`
-  if (tab === 'adrRecords') return `${record.status === 'applicable' ? `ADR · ${record.unNumber} · Class ${record.hazardClass}${record.packingGroup ? ` · PG ${record.packingGroup}` : ''}` : `ADR ${record.status}`} · ${record.tunnelRestrictionCode || 'No tunnel restriction'}`
-  return `${record.code} · ${record.category}${record.active ? ' · Active' : ' · Inactive'}`
+  if (tab === 'containerTypes') return `${record.code} · ${record.category} · ${record.nominalLengthM} × ${record.widthM} × ${record.heightM} m · ${record.payloadCapacityKg ?? '—'} kg payload${record.requiredDockCapabilityCode ? ` · Requires ${record.requiredDockCapabilityCode}` : ''}`
+  if (tab === 'adrRecords') return `${record.status === 'applicable' ? `ADR · ${record.unNumber} · Class ${record.hazardClass}${record.packingGroup ? ` · PG ${record.packingGroup}` : ''}` : `ADR ${record.status}`} · ${record.tunnelRestrictionCode || 'No tunnel restriction'}${record.requiredDockCapabilityCode ? ` · Requires ${record.requiredDockCapabilityCode}` : ''}`
+  return `${record.code} · ${record.category}${record.requiredDockCapabilityCode ? ` · Requires ${record.requiredDockCapabilityCode}` : ''}${record.active ? ' · Active' : ' · Inactive'}`
 }
 
 export default function CargoComplianceStudio({ dataset, onSave }) {
@@ -393,6 +398,7 @@ export default function CargoComplianceStudio({ dataset, onSave }) {
       <aside className="cc-detail-panel" aria-label={`${currentTab.label} details`}>
         {selected ? <>
           <div className="cc-detail-top"><div><span>Record detail</span><h2>{title(selected, tab)}</h2><small>{recordId(selected, tab)}</small></div><button type="button" className="cc-icon-button" onClick={() => setSelectedId('')} aria-label="Close details"><X size={16} /></button></div>
+          {selected.requiredDockCapabilityCode && <p className="cc-storage-note">Dispatch requires configured dock capability <strong>{selected.requiredDockCapabilityCode}</strong>.</p>}
           {tab === 'cargo' && <dl className="cc-detail-list"><dt>Type</dt><dd>{selected.cargoType}</dd><dt>Description</dt><dd>{selected.description}</dd><dt>Quantity</dt><dd>{selected.quantity} {selected.quantityUnit}</dd><dt>Weight</dt><dd>{selected.weightKg === undefined ? 'Not recorded' : `${selected.weightKg} kg`}</dd><dt>Volume</dt><dd>{selected.volumeM3 === undefined ? 'Not recorded' : `${selected.volumeM3} m³`}</dd><dt>Container</dt><dd>{data.containerTypes.find((item) => item.containerTypeId === selected.containerTypeId)?.name ?? 'Not specified'}</dd><dt>ADR details</dt><dd>{selectedCargoAdr ? selectedCargoAdr.status === 'applicable' ? `ADR · ${selectedCargoAdr.unNumber} · ${selectedCargoAdr.properShippingName} · Class ${selectedCargoAdr.hazardClass}${selectedCargoAdr.packingGroup ? ` · PG ${selectedCargoAdr.packingGroup}` : ''}` : `ADR ${selectedCargoAdr.status}` : 'Not specified'}</dd><dt>Handling</dt><dd>{selected.handlingRequirementIds.map((id) => data.handlingRequirements.find((item) => item.handlingRequirementId === id)?.name).filter(Boolean).join(', ') || 'None recorded'}</dd>{selected.notes && <><dt>Notes</dt><dd>{selected.notes}</dd></>}</dl>}
           {tab === 'containerTypes' && <dl className="cc-detail-list"><dt>Code / category</dt><dd>{selected.code} · {selected.category}</dd><dt>Dimensions</dt><dd>{selected.nominalLengthM} × {selected.widthM} × {selected.heightM} m</dd><dt>Max gross weight</dt><dd>{selected.maxGrossWeightKg} kg</dd><dt>Tare weight</dt><dd>{selected.tareWeightKg === undefined ? 'Not specified' : `${selected.tareWeightKg} kg`}</dd><dt>Payload capacity</dt><dd>{selected.payloadCapacityKg === undefined ? 'Not specified' : `${selected.payloadCapacityKg} kg`}</dd><dt>Characteristics</dt><dd>{['refrigerated', 'tank', 'openTop', 'flatRack'].filter((key) => selected[key]).map((key) => key === 'openTop' ? 'Open top' : key === 'flatRack' ? 'Flat rack' : key).join(', ') || 'Standard'}</dd><dt>Status</dt><dd>{selected.active ? 'Active' : 'Inactive'}</dd><dt>Current cargo references</dt><dd>{getContainerTypeReferences(data, selected.containerTypeId).length} cargo records</dd>{selected.notes && <><dt>Notes</dt><dd>{selected.notes}</dd></>}</dl>}
           {tab === 'adrRecords' && <>
@@ -405,7 +411,7 @@ export default function CargoComplianceStudio({ dataset, onSave }) {
         </> : <div className="cc-empty cc-detail-empty"><Package size={24} /><strong>Select a record</strong><span>Choose an item to review its structured details and available actions.</span></div>}
       </aside>
     </div>
-    <p className="cc-storage-note">Changes save to this dataset in browser storage. These records are not yet used for dispatch decisions.</p>
+    <p className="cc-storage-note">Dispatch uses blocking cargo conflicts and only explicitly configured dock capability codes. This is operational guidance, not legal ADR compliance certification.</p>
     {formMode && <CargoComplianceForm key={`${tab}-${formMode.initial ? recordId(formMode.initial, tab) : 'new'}`} tab={tab} initial={formMode.initial} asNew={formMode.asNew} data={data} vehicles={vehicles} onCancel={() => setFormMode(null)} onSave={saveRecord} />}
   </section>
 }

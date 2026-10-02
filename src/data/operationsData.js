@@ -55,7 +55,6 @@ export function adaptDataset(dataset, now = new Date()) {
     callingIndex: 0,
     queue: datasetQueue.map((item) => ({
       vehicleId: item.vehicleId,
-      capabilityCodes: item.capabilityCodes,
       queue: String(item.position).padStart(2, '0'),
       queuePosition: item.position,
       plate: item.plate,
@@ -83,6 +82,7 @@ export function adaptDataset(dataset, now = new Date()) {
       appointment: item.appointmentTime,
       notes: item.notes,
       vehicleId: item.vehicleId,
+      capabilityCodes: item.capabilityCodes,
       appointmentMinutes: item.appointmentTime === '—' ? null : timeToMinutes(item.appointmentTime),
     })),
     alerts: (dataset.alerts ?? []).map((alert, index) => ({

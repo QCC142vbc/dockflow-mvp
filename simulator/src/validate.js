@@ -226,7 +226,7 @@ export function validateDataset(dataset) {
   const dockVehicleIds = new Set()
   for (const dock of Array.isArray(dataset.docks) ? dataset.docks : []) {
     if (!isRecord(dock)) { fail(errors, 'docks must contain object records'); continue }
-    if (typeof dock.dockId !== 'string' || typeof dock.state !== 'string' || typeof dock.status !== 'string' || (dock.vehicleId !== null && typeof dock.vehicleId !== 'string') || typeof dock.plate !== 'string' || !Number.isFinite(dock.elapsedSeconds) || dock.capabilityCodes !== undefined && (!Array.isArray(dock.capabilityCodes) || dock.capabilityCodes.some((code) => typeof code !== 'string' || !CARGO_CODE.test(code)))) fail(errors, `Dock ${label(dock.dockId)} has an invalid record shape`)
+    if (typeof dock.dockId !== 'string' || typeof dock.state !== 'string' || typeof dock.status !== 'string' || (dock.vehicleId !== null && typeof dock.vehicleId !== 'string') || typeof dock.plate !== 'string' || !Number.isFinite(dock.elapsedSeconds) || dock.capabilityCodes !== undefined && (!Array.isArray(dock.capabilityCodes) || new Set(dock.capabilityCodes).size !== dock.capabilityCodes.length || dock.capabilityCodes.some((code) => typeof code !== 'string' || !CARGO_CODE.test(code)))) fail(errors, `Dock ${label(dock.dockId)} has an invalid record shape`)
     if (typeof dock.dockId !== 'string' || !/^(?:0[1-9]|1[0-9]|2[0-4])$/.test(dock.dockId) || dockIds.has(dock.dockId)) fail(errors, `Duplicate or invalid dockId: ${label(dock.dockId)}`)
     dockIds.add(dock.dockId)
     if (typeof dock.vehicleId === 'string' && dock.vehicleId) {

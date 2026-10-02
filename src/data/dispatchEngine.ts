@@ -329,14 +329,16 @@ export function recommendDispatch(
   const directionRestricted = freeDocks.length > 0 && compatible.length === 0 &&
     blockedDocks.some((item) => item.reasons.some((reason) => /direction/i.test(reason)))
   if (!compatible.length) {
-    const compatibilityUnknown = undeterminedDocks.length > 0 && blockedDocks.length + undeterminedDocks.length === docks.length
-    const message = compatibilityUnknown
+    const compatibilityUnknown = undeterminedDocks.length > 0
+    const baseMessage = compatibilityUnknown
       ? undeterminedDocks.flatMap((item) => item.reasons).join(' ')
       : directionRestricted
       ? `No available dock matches ${vehicle.direction} direction.`
       : docks.length === 0
         ? 'No dock records are available for assignment.'
         : 'No available dock can accept this vehicle; docks may be occupied, under maintenance, or cleaning.'
+    const additionalReasons = blockedDocks.flatMap((item) => item.reasons)
+    const message = [baseMessage, ...additionalReasons].join(' ')
     const noDock = conflict(compatibilityUnknown ? 'DOCK_COMPATIBILITY_UNDETERMINED' : 'NO_COMPATIBLE_DOCK', message, { vehicleId: vehicle.vehicleId })
     return {
       vehicleId: vehicle.vehicleId,
@@ -378,6 +380,7 @@ export function recommendDispatch(
       `${dockWorkload.toFixed(0)} min estimated current workload.`,
       processing === null ? 'Processing-time estimate is unavailable.' : `Estimated service time: ${processing} min.`,
     ].join(' ')
+    const capabilityMatch: DispatchCandidate['capabilityMatch'] = requiredCapabilities.length ? 'matched' : 'not-required'
     return {
       dockId: dock.id,
       estimatedProcessingTimeMinutes: processing,
@@ -385,7 +388,7 @@ export function recommendDispatch(
       currentWorkloadMinutes: dockWorkload,
       reason,
       confidence,
-      capabilityMatch: requiredCapabilities.length ? 'matched' : 'not-required',
+      capabilityMatch,
     }
   }).sort((left, right) =>
     left.estimatedWaitTimeMinutes - right.estimatedWaitTimeMinutes ||
@@ -687,7 +690,7 @@ export function applyDispatchAction(
 
   if (!issue && targetDock && vehicle && (action.type === 'call' || action.type === 'assign' || action.type === 'reassign')) {
     const recommendation = recommendDispatch(vehicle, queue, docks, undefined, state.operationalDataset)
-    newEvents.unshift(createEvent(
+    newEvents.push(createEvent(
       'dispatch-recommended',
       `${vehicle.plate}: ${recommendation.recommendedDockId
         ? `Dock ${recommendation.recommendedDockId} recommended. ${recommendation.reason}`
@@ -695,11 +698,11 @@ export function applyDispatchAction(
       timestamp,
       (state.dispatchEvents ?? []).length,
       vehicle.vehicleId,
-      targetDock.id,
+      recommendation.recommendedDockId ?? undefined,
     ))
-    newEvents.splice(1, 0, createEvent(
+    newEvents.push(createEvent(
       'dispatch-accepted',
-      `${vehicle.plate}: operator accepted Dock ${targetDock.id} for ${action.type}.`,
+      `${vehicle.plate}: Dock ${targetDock.id} accepted for ${action.type}.`,
       timestamp,
       (state.dispatchEvents ?? []).length + 1,
       vehicle.vehicleId,

@@ -125,3 +125,26 @@ test('continues to accept legacy datasets without Cargo & Compliance data', () =
   assert.equal(validateOperationsDataset(legacy).valid, true)
   assert.equal(validateDataset(legacy).valid, true)
 })
+
+test('validates explicitly configured dock capability codes in cargo definitions and docks', () => {
+  const configured = validCargoCompliance()
+  configured.containerTypes[0].requiredDockCapabilityCode = 'REEFER'
+  configured.adrRecords[0].requiredDockCapabilityCode = 'ADR-3'
+  configured.handlingRequirements[0].requiredDockCapabilityCode = 'COLD'
+  const dataset = datasetWithCargo(configured)
+  dataset.docks[0].capabilityCodes = ['REEFER', 'ADR-3', 'COLD']
+  const valid = recalculateDatasetIntegrity(dataset)
+  assert.equal(validateOperationsDataset(valid).valid, true)
+  assert.equal(validateDataset(valid).valid, true)
+  const roundTrip = JSON.parse(JSON.stringify(valid))
+  assert.equal(validateOperationsDataset(roundTrip).valid, true)
+  assert.equal(validateDataset(roundTrip).valid, true)
+  assert.deepEqual(roundTrip.cargoCompliance.adrRecords[0].requiredDockCapabilityCode, 'ADR-3')
+  assert.deepEqual(roundTrip.docks[0].capabilityCodes, ['REEFER', 'ADR-3', 'COLD'])
+
+  const invalid = structuredClone(valid)
+  invalid.docks[0].capabilityCodes = ['bad code', 'REEFER', 'REEFER']
+  const malformed = recalculateDatasetIntegrity(invalid)
+  assert.equal(validateOperationsDataset(malformed).valid, false)
+  assert.equal(validateDataset(malformed).valid, false)
+})
