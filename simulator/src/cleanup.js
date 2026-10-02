@@ -16,10 +16,21 @@ const safeDataPath = (relative) => {
 }
 const manifest = fs.existsSync(manifestFile) ? JSON.parse(fs.readFileSync(manifestFile, 'utf8')) : { schemaVersion: '1.0.0', datasets: [] }
 const logFile = path.join(DATA, 'cleanup.log')
+const latestFile = path.join(DATA, 'current', 'latest.json')
+let latestDatasetId = null
+let clearLatest = false
+if (fs.existsSync(latestFile)) {
+  try {
+    const latest = JSON.parse(fs.readFileSync(latestFile, 'utf8'))
+    latestDatasetId = latest.datasetId
+    clearLatest = Number.isFinite(Date.parse(latest.expiresAt)) && Date.parse(latest.expiresAt) <= now
+  } catch {}
+}
 const events = []
 for (const record of manifest.datasets) {
   if (record.status === 'deleted') continue
   const expired = Date.parse(record.expiresAt) <= now
+  if (expired && record.datasetId === latestDatasetId) clearLatest = true
   if (expired && record.status !== 'archived') {
     const sourcePath = safeDataPath(record.filePath)
     const archiveName = path.basename(sourcePath)
@@ -34,6 +45,7 @@ for (const record of manifest.datasets) {
   }
 }
 if (!dryRun) {
+  if (clearLatest && fs.existsSync(latestFile)) fs.unlinkSync(latestFile)
   fs.writeFileSync(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`)
   if (events.length) fs.appendFileSync(logFile, events.map((event) => JSON.stringify(event)).join('\n') + '\n')
 }

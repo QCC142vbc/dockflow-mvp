@@ -12,7 +12,10 @@ const writeJson = (file, value) => { mkdir(path.dirname(file)); fs.writeFileSync
 const seedRandom = (seed) => { let value = crypto.createHash('sha256').update(String(seed)).digest().readUInt32LE(0); return () => { value = (value * 1664525 + 1013904223) >>> 0; return value / 4294967296 } }
 const iso = (date) => date.toISOString().replace(/\.\d{3}Z$/, 'Z')
 const timestampSlug = (date) => iso(date).replace(/[-:]/g, '').replace('T', 'T').replace('Z', 'Z')
-const clockTime = (totalMinutes) => `${String(Math.floor(totalMinutes / 60)).padStart(2, '0')}:${String(totalMinutes % 60).padStart(2, '0')}`
+const clockTime = (totalMinutes) => {
+  const normalized = ((Math.trunc(totalMinutes) % 1440) + 1440) % 1440
+  return `${String(Math.floor(normalized / 60)).padStart(2, '0')}:${String(normalized % 60).padStart(2, '0')}`
+}
 const hungarianDate = (date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Budapest', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date)
 const hungarianMinutes = (date) => {
   const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Budapest', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(date)
@@ -25,7 +28,8 @@ const loadTypes = ['Inbound Pallets', 'Outbound Retail', 'Outbound Cases', 'Inbo
 const plates = ['ABC-482', 'LNX-728', 'KRD-915', 'RMV-304', 'TXP-611', 'HNL-448', 'GVC-839', 'JTX-490', 'NVK-201', 'DHL-779', 'QRS-582', 'WTR-664', 'BXC-117', 'MTR-305', 'PCL-923']
 
 export function buildDataset({ scenarioName = 'normal', seed = Date.now(), now = new Date() } = {}) {
-  const scenario = scenarios[scenarioName] || scenarios.normal
+  if (typeof scenarioName !== 'string' || !Object.hasOwn(scenarios, scenarioName)) throw new Error(`Unknown scenario "${scenarioName}". Choose: ${Object.keys(scenarios).join(', ')}`)
+  const scenario = scenarios[scenarioName]
   const random = seedRandom(seed)
   const generatedAt = new Date(now)
   const simulatedAt = new Date(now)
@@ -44,11 +48,11 @@ export function buildDataset({ scenarioName = 'normal', seed = Date.now(), now =
   })
   const called = vehicles[0]
   const calledDock = docks[6]
-  calledDock.vehicleId = called.vehicleId; calledDock.plate = called.plate; calledDock.carrier = called.carrier; calledDock.direction = called.direction; calledDock.status = 'called'; calledDock.state = 'Available'; calledDock.progress = 0; calledDock.notes = 'Now calling: driver proceed to Dock 07. Follow safety signage.'
+  calledDock.vehicleId = called.vehicleId; calledDock.plate = called.plate; calledDock.carrier = called.carrier; calledDock.direction = called.direction; calledDock.status = 'called'; calledDock.state = 'Available'; calledDock.progress = 0; calledDock.notes = `Now calling: driver proceed to Dock ${calledDock.dockId}. Follow safety signage.`
   const queue = vehicles.slice(1, 7).map((vehicle, index) => ({ queueId: `queue-${index + 1}`, position: index + 1, vehicleId: vehicle.vehicleId, plate: vehicle.plate, carrier: vehicle.carrier, loadType: vehicle.loadType, arrivalTime: clockTime(operationalNow - 38 + index * 9), estimatedCallTime: clockTime(operationalNow + index * 15), priority: index === 0 ? 'Priority' : index === 2 ? 'Delayed' : index === 3 ? 'Documentation check' : 'Standard' }))
   const alerts = docks.filter((dock) => ['delayed', 'maintenance', 'cleaning'].includes(dock.status)).map((dock) => ({ alertId: `alert-${dock.dockId}`, dockId: dock.dockId, severity: dock.status === 'delayed' ? 'critical' : dock.status === 'maintenance' ? 'warning' : 'info', code: dock.status === 'delayed' ? 'DOCUMENTATION_MISMATCH' : dock.status === 'maintenance' ? 'MAINTENANCE' : 'SAFETY_HOLD', description: dock.notes, action: dock.status === 'delayed' ? 'Operations lead notified' : dock.status === 'maintenance' ? 'Next review at 09:00' : 'Estimated release 07:26', elapsedSeconds: dock.elapsedSeconds }))
-  alerts.push(...scenario.extraAlerts.map((alert) => ({ ...alert, elapsedSeconds: 1440 })))
-  const kpis = { arrivalsToday: 86 + Math.floor(random() * 14), averageWaitMinutes: 18 + scenario.queueDelayMinutes, activeDocks: docks.filter((dock) => !['Available', 'called'].includes(dock.status)).length, delayedShipments: alerts.filter((alert) => alert.severity === 'critical').length }
+  alerts.push(...scenario.extraAlerts.map(({ id, ...alert }) => ({ ...alert, alertId: alert.alertId || id, elapsedSeconds: 1440 })))
+  const kpis = { arrivalsToday: 86 + Math.floor(random() * 14), averageWaitMinutes: 18 + scenario.queueDelayMinutes, activeDocks: docks.filter((dock) => dock.state !== 'Available').length, delayedShipments: alerts.filter((alert) => alert.severity === 'critical').length }
   const dataset = { datasetId: `df-${warehouseDate.replace(/-/g, '')}-${scenarioName}-${String(seed).slice(-6)}`, schemaVersion: SCHEMA_VERSION, scenario: scenarioName, generatedAt: iso(generatedAt), simulatedAt: iso(simulatedAt), expiresAt: iso(expiresAt), warehouse: { name: 'Central Logistics Hub', date: warehouseDate, shift: 'Live operations · local time' }, nowCalling: { vehicleId: called.vehicleId, dockId: calledDock.dockId, instruction: 'PROCEED TO DOCK', estimatedStart: clockTime(operationalNow) }, vehicles, queue, docks, alerts, kpis }
   const canonical = JSON.stringify(dataset)
   dataset.integrity = { checksum: crypto.createHash('sha256').update(canonical).digest('hex'), recordCounts: { vehicles: vehicles.length, queue: queue.length, docks: docks.length, alerts: alerts.length } }
@@ -59,9 +63,12 @@ function parseArgs(argv) { const args = Object.fromEntries(argv.slice(2).map((ar
 export function persistDataset(dataset, source = 'generated', { selectCurrent = true } = {}) {
   const result = validateDataset(dataset)
   if (!result.valid) throw new Error(`Generated dataset is invalid:\n${result.errors.join('\n')}`)
+  if (!['generated', 'imported'].includes(source)) throw new Error(`Unsupported dataset source: ${source}`)
   const stamp = timestampSlug(new Date(dataset.generatedAt))
   const filename = `snapshot_${stamp}_${dataset.scenario}_morning-01.json`
-  const snapshotPath = path.join(DATA, source === 'imported' ? 'imports' : 'snapshots', filename)
+  const destination = path.join(DATA, source === 'imported' ? 'imports' : 'snapshots')
+  const snapshotPath = path.resolve(destination, filename)
+  if (!snapshotPath.startsWith(`${destination}${path.sep}`)) throw new Error(`Unsafe dataset destination: ${filename}`)
   if (fs.existsSync(snapshotPath)) throw new Error(`Refusing to overwrite existing dataset file: ${filename}`)
   writeJson(snapshotPath, dataset)
   const index = fs.existsSync(manifestPath) ? JSON.parse(fs.readFileSync(manifestPath, 'utf8')) : { schemaVersion: SCHEMA_VERSION, datasets: [] }

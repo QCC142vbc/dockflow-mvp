@@ -10,6 +10,8 @@ The simulator is a self-contained Node.js data tool. It does not import React or
 4. `server.js` exposes read-only dataset endpoints plus a development-only generation endpoint.
 5. `cleanup.js` archives expired files and deletes them after the configured grace period.
 
+The committed dataset contract is `../data/schema/operations-dataset.schema.json`, a JSON Schema Draft 2020-12 document for simulator-generated datasets. `validate.js` also checks constraints JSON Schema cannot express directly, including unique IDs, references between records, timestamp ordering, record counts, and checksum integrity.
+
 Generated snapshots are written to `data/snapshots/`, imported files to `data/imports/`, the selected dataset to `data/current/latest.json`, and lifecycle metadata to `data/manifest/index.json`.
 
 All generated and imported datasets expire seven days after creation. Cleanup moves expired snapshots to `data/archive/` and permanently deletes archived files after two additional days by default.
