@@ -129,15 +129,15 @@ test('continues to accept legacy datasets without Cargo & Compliance data', () =
 
 test('creates a versioned editable master-data catalog that validates and round-trips', () => {
   const masterData = createStarterMasterData()
-  assert.equal(masterData.catalogDefaultsVersion, '1')
+  assert.equal(masterData.catalogDefaultsVersion, '2')
   assert.equal(masterData.containerTypes.length, 12)
   assert.equal(masterData.packagingTypes?.length, 12)
   assert.equal(masterData.handlingRequirements.length, 15)
-  assert.equal(masterData.temperatureProfiles?.length, 8)
-  assert.equal(masterData.cargo.length, 16)
+  assert.equal(masterData.temperatureProfiles?.length, 7)
+  assert.equal(masterData.cargo.length, 20)
   assert.ok(masterData.handlingRequirements.every((item) => item.cargoExamples?.length === 2))
   assert.ok(masterData.packagingTypes?.every((item) => item.typicalCargo.length >= 2))
-  assert.equal(masterData.adrRecords.length, 0)
+  assert.equal(masterData.adrRecords.length, 31)
 
   const dataset = datasetWithCargo(masterData)
   assert.deepEqual(validateOperationsDataset(dataset), { valid: true, errors: [] })
@@ -145,7 +145,7 @@ test('creates a versioned editable master-data catalog that validates and round-
   const imported = JSON.parse(JSON.stringify(dataset))
   assert.deepEqual(validateOperationsDataset(imported), { valid: true, errors: [] })
   assert.equal(imported.cargoCompliance.packagingTypes.length, 12)
-  assert.equal(imported.cargoCompliance.temperatureProfiles.length, 8)
+  assert.equal(imported.cargoCompliance.temperatureProfiles.length, 7)
 })
 
 test('starter catalog migration preserves user records and does not reapply after initialization', () => {

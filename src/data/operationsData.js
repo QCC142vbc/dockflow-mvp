@@ -1,4 +1,4 @@
-import demoDataset from '../../data/examples/demo-dataset.json'
+import demoDataset from '../../data/examples/demo-dataset.json' with { type: 'json' }
 import { applyDispatchAction, recommendDispatch, selectNextDispatchVehicle } from './dispatchEngine.ts'
 
 export const statusMeta = {
