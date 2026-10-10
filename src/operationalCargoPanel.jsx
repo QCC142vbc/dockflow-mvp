@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Box, FileWarning, Package, Pencil, Plus, ShieldCheck } from 'lucide-react'
+import { Box, FileWarning, Package, Pencil, Plus, ShieldCheck, X } from 'lucide-react'
 import { saveOperationalCargoReferences, unassignOperationalCargo } from './data/operationalCargo.ts'
 
 const displayDimension = (value) => value === undefined ? null : `${value} m`
@@ -47,7 +47,7 @@ function CargoReferenceEditor({ dataset, vehicleId, initialCargo, onSave, onCanc
 
   return <div className="op-cargo-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel() }}>
     <section className="op-cargo-dialog" role="dialog" aria-modal="true" aria-labelledby="op-cargo-form-title" onKeyDown={(event) => { if (event.key === 'Escape') onCancel() }}>
-      <button type="button" className="op-cargo-close" onClick={onCancel} aria-label="Close cargo assignment form">×</button>
+      <button type="button" className="op-cargo-close" onClick={onCancel} aria-label="Close cargo assignment form"><X size={16} /></button>
       <span className="dispatch-eyebrow">Vehicle cargo references</span>
       <h3 id="op-cargo-form-title">{initialCargo ? 'Edit assigned cargo' : 'Assign cargo to vehicle'}</h3>
       <form onSubmit={submit}>

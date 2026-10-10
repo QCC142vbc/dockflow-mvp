@@ -82,13 +82,25 @@ function CargoComplianceForm({ tab, initial, asNew = false, data, vehicles, onCa
       setFormError('Cargo name and category are required.')
       return
     }
+    if (tab === 'cargo' && form.adrRequired && !form.adrRecordId) {
+      setFormError('ADR reference is required when ADR is marked as required for this cargo.')
+      return
+    }
     if (tab === 'containerTypes' && (!String(form.isoCategory ?? '').trim() || !String(form.typicalUse ?? '').trim())) {
       setFormError('Container ISO category and typical use are required.')
+      return
+    }
+    if (tab === 'containerTypes' && form.containerTypeId && data.containerTypes.some((item) => item.containerTypeId !== (isEdit ? initial.containerTypeId : undefined) && item.containerTypeId === form.containerTypeId)) {
+      setFormError('This container type ID already exists. Each container type must have a unique ID.')
       return
     }
     if (tab === 'adrRecords' && form.status === 'applicable' &&
       ['unNumber', 'properShippingName', 'hazardClass', 'category', 'source', 'referenceVersion'].some((key) => !String(form[key] ?? '').trim())) {
       setFormError('Applicable ADR records require a UN number, proper shipping name, class, category, source, and reference version.')
+      return
+    }
+    if (tab === 'adrRecords' && form.unNumber && data.adrRecords.some((item) => item.adrRecordId !== (isEdit ? initial.adrRecordId : undefined) && item.unNumber === form.unNumber)) {
+      setFormError('This UN number already exists in the catalog. Each UN number must be unique.')
       return
     }
     if (tab === 'cargo') {
@@ -272,7 +284,7 @@ function CargoComplianceForm({ tab, initial, asNew = false, data, vehicles, onCa
         {tab === 'cargo' && form.name?.trim() && data.cargo.some((item) =>
           item.cargoId !== (isEdit ? initial.cargoId : undefined) &&
           (item.name ?? item.description).trim().toLowerCase() === form.name.trim().toLowerCase()) &&
-          <div className="cc-storage-note" role="status">A cargo profile with this name already exists. Review it before saving a duplicate.</div>}
+          <div className="cc-storage-note" role="status">Warning: A cargo profile with this name already exists. Review it before saving a duplicate.</div>}
         {formError && <div className="cc-error" role="alert">{formError}</div>}
         <div className="cc-form-actions"><button type="button" className="cc-secondary" onClick={onCancel}>Cancel</button><button type="submit" className="cc-primary">{isEdit ? 'Save changes' : 'Create record'}</button></div>
       </form>
@@ -510,8 +522,8 @@ export default function CargoComplianceStudio({ dataset, onSave }) {
     <div className="cc-workspace" id="cc-panel" role="tabpanel" aria-labelledby={`cc-tab-${tab}`}>
       <div className="cc-record-panel">
         <div className="cc-list-toolbar"><label className="cc-search"><Search size={15} /><input type="search" aria-label={`Search ${currentTab.label}`} placeholder={`Search ${currentTab.label.toLowerCase()}…`} value={search} onChange={(event) => setSearch(event.target.value)} /></label><button type="button" className="cc-primary" onClick={() => openForm()}><Plus size={15} />Add {tab === 'containerTypes' ? 'Container Type' : tab === 'adrRecords' ? 'ADR Record' : tab === 'handlingRequirements' ? 'Requirement' : tab === 'packagingTypes' ? 'Packaging Type' : tab === 'temperatureProfiles' ? 'Temperature Profile' : 'Cargo'}</button></div>
-        {tab === 'adrRecords' && collection.length === 0 && <p className="cc-storage-note" role="note">No ADR templates are preloaded. Add records only after verifying their fields against the official ADR 2025 source.</p>}
-        {isCatalog && <div className="cc-list-filters" aria-label="Record filters">{['all', 'active', 'inactive'].map((value) => <button key={value} type="button" className={filter === value ? 'selected' : ''} aria-pressed={filter === value} onClick={() => setFilter(value)}>{value === 'all' ? 'All records' : value}</button>)}
+
+        {isCatalog && <div className="cc-list-filters" aria-label="Record filters">{['all', 'active', 'inactive'].map((value) => <button key={value} type="button" className={filter === value ? 'selected' : ''} aria-pressed={filter === value} onClick={() => setFilter(value)} aria-label={`Show ${value === 'all' ? 'all' : value} records`}>{value === 'all' ? 'All records' : value}</button>)}
           {(tab === 'containerTypes' || tab === 'cargo') && <label className="cc-filter-select"><span>Category</span><select aria-label={`Filter by ${tab === 'cargo' ? 'cargo' : 'container'} category`} value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">Any category</option>{(tab === 'cargo' ? ['General Cargo', 'Palletized Cargo', 'Boxed Cargo', 'Liquid Cargo', 'Bulk Cargo', 'Dangerous Goods', 'Refrigerated Cargo', 'Oversized Cargo', 'Fragile Cargo', 'High Value Cargo'] : ['standard', 'reefer', 'tank', 'open-top', 'flat-rack', 'other']).map((value) => <option key={value} value={value}>{value.replace('-', ' ')}</option>)}</select></label>}
           {tab === 'containerTypes' && <>
             <label className="cc-filter-select"><span>Capability</span><select aria-label="Filter by container capability" value={capabilityFilter} onChange={(event) => setCapabilityFilter(event.target.value)}><option value="all">Any capability</option><option value="refrigerated">Refrigerated</option><option value="tank">Tank capable</option><option value="openTop">Open top</option><option value="flatRack">Flat rack</option></select></label>
@@ -520,7 +532,7 @@ export default function CargoComplianceStudio({ dataset, onSave }) {
             <label className="cc-filter-select"><span>ADR status</span><select aria-label="Filter by ADR status" value={adrStatusFilter} onChange={(event) => setAdrStatusFilter(event.target.value)}><option value="all">Any ADR status</option><option value="applicable">Applicable</option><option value="not-applicable">Not applicable</option><option value="unknown">Unknown</option></select></label>
             <label className="cc-filter-select"><span>Class</span><select aria-label="Filter by ADR class" value={adrClassFilter} onChange={(event) => setAdrClassFilter(event.target.value)}><option value="all">All classes</option>{['2', '3', '4.1', '4.2', '4.3', '5.1', '5.2', '6.1', '8', '9'].map((value) => <option key={value} value={value}>Class {value}</option>)}</select></label>
             <label className="cc-filter-select"><span>Packing group</span><select aria-label="Filter by packing group" value={packingGroupFilter} onChange={(event) => setPackingGroupFilter(event.target.value)}><option value="all">All groups</option>{['I', 'II', 'III'].map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
-            <label className="cc-filter-select"><span>Category</span><select aria-label="Filter by ADR category" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">All categories</option>{[...new Set(data.adrRecords.map((item) => item.category).filter(Boolean))].map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
+            <label className="cc-filter-select"><span>Category</span><select aria-label="Filter by ADR category" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">All categories</option>{[...new Set(data.adrRecords.map((item) => item.category).filter(Boolean))].sort().map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
           </>}
         </div>}
         {filtered.length === 0

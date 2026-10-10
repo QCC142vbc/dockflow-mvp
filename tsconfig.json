@@ -9,5 +9,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src/data/datasetTypes.ts", "src/data/cargoComplianceValidation.ts", "src/data/containerTypeDefaults.ts", "src/data/containerTypeLibrary.ts", "src/data/datasetFactory.ts", "src/data/capacityAnalysis.ts", "src/data/dispatchEngine.ts"]
+  "include": ["src/**/*.ts"]
 }
