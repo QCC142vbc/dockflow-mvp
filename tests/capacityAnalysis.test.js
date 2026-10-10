@@ -189,6 +189,28 @@ test('projectCapacityScenario adds dock capacity without changing the input data
   assert.equal(dataset.docks.length, originalDockCount)
 })
 
+test('projectCapacityScenario prefers configured throughput over a conflicting dataset KPI', () => {
+  const dataset = makeDataset({
+    kpis: {
+      averageWaitMinutes: 0,
+      delayedShipments: 0,
+      throughputEstimate: 20,
+      averageProcessingMinutes: 30,
+      queueLength: 0,
+    },
+    simulationConfig: {
+      averageServiceMinutes: 30,
+      averageArrivalIntervalMinutes: 10,
+      utilizationTarget: 50,
+    },
+  })
+
+  const result = projectCapacityScenario(dataset, 'add-1-dock')
+
+  assert.equal(result.availableDockCapacity, 5)
+  assert.equal(result.throughputPerHour, 5)
+})
+
 test('projectCapacityScenario preserves unavailable docks when adding capacity', () => {
   const dataset = makeDataset({
     docks: [
@@ -239,4 +261,221 @@ test('projectCapacityScenario increases arrival rate in arrival-growth scenarios
   assert.equal(plus10.arrivalRatePerHour, 6.6)
   assert.equal(plus20.arrivalRatePerHour, 7.2)
   assert.ok(plus20.arrivalRatePerHour > plus10.arrivalRatePerHour)
+})
+
+test('projectCapacityScenario handles zero operational docks', () => {
+  const dataset = makeDataset({
+    docks: [
+      makeDock('D01', { state: 'Maintenance', status: 'maintenance' }),
+      makeDock('D02', { state: 'Cleaning', status: 'cleaning' }),
+    ],
+  })
+
+  const result = projectCapacityScenario(dataset, 'add-1-dock')
+
+  assert.equal(result.totalDockCapacity, 3)
+  assert.equal(result.availableDockCapacity, 1)
+  assert.equal(result.throughputPerHour, 2)
+  assert.equal(result.capacityUtilizationPercent, 100)
+})
+
+test('projectCapacityScenario handles all docks unavailable', () => {
+  const dataset = makeDataset({
+    docks: [
+      makeDock('D01', { state: 'Maintenance', status: 'maintenance' }),
+      makeDock('D02', { state: 'Maintenance', status: 'maintenance' }),
+      makeDock('D03', { state: 'Cleaning', status: 'cleaning' }),
+      makeDock('D04', { state: 'Cleaning', status: 'cleaning' }),
+    ],
+  })
+
+  const result = projectCapacityScenario(dataset, 'add-1-dock')
+
+  assert.equal(result.totalDockCapacity, 5)
+  assert.equal(result.availableDockCapacity, 1)
+  assert.equal(result.throughputPerHour, 2)
+})
+
+test('projectCapacityScenario handles missing simulationConfig', () => {
+  const dataset = makeDataset({
+    simulationConfig: undefined,
+    kpis: {
+      averageWaitMinutes: 0,
+      delayedShipments: 0,
+      throughputEstimate: 8,
+      averageProcessingMinutes: 30,
+      queueLength: 0,
+    },
+  })
+
+  const result = projectCapacityScenario(dataset, 'add-1-dock')
+
+  assert.equal(result.totalDockCapacity, 5)
+  assert.equal(result.availableDockCapacity, 5)
+  assert.equal(result.throughputPerHour, 10)
+  assert.equal(result.arrivalRatePerHour, null)
+})
+
+test('projectCapacityScenario handles missing averageServiceMinutes', () => {
+  const dataset = makeDataset({
+    simulationConfig: {
+      averageArrivalIntervalMinutes: 10,
+      utilizationTarget: 100,
+    },
+    kpis: {
+      averageWaitMinutes: 0,
+      delayedShipments: 0,
+      throughputEstimate: 8,
+      averageProcessingMinutes: 30,
+      queueLength: 0,
+    },
+  })
+
+  const result = projectCapacityScenario(dataset, 'add-1-dock')
+
+  assert.equal(result.throughputPerHour, 10)
+})
+
+test('projectCapacityScenario handles invalid averageServiceMinutes', () => {
+  const dataset = makeDataset({
+    simulationConfig: {
+      averageServiceMinutes: -5,
+      averageArrivalIntervalMinutes: 10,
+      utilizationTarget: 100,
+    },
+    kpis: {
+      averageWaitMinutes: 0,
+      delayedShipments: 0,
+      throughputEstimate: 8,
+      averageProcessingMinutes: 30,
+      queueLength: 0,
+    },
+  })
+
+  const result = projectCapacityScenario(dataset, 'add-1-dock')
+
+  assert.equal(result.throughputPerHour, 10)
+})
+
+test('projectCapacityScenario handles zero averageServiceMinutes', () => {
+  const dataset = makeDataset({
+    simulationConfig: {
+      averageServiceMinutes: 0,
+      averageArrivalIntervalMinutes: 10,
+      utilizationTarget: 100,
+    },
+    kpis: {
+      averageWaitMinutes: 0,
+      delayedShipments: 0,
+      throughputEstimate: 8,
+      averageProcessingMinutes: 30,
+      queueLength: 0,
+    },
+  })
+
+  const result = projectCapacityScenario(dataset, 'add-1-dock')
+
+  assert.equal(result.throughputPerHour, 10)
+})
+
+test('projectCapacityScenario handles missing averageArrivalIntervalMinutes', () => {
+  const dataset = makeDataset({
+    simulationConfig: {
+      averageServiceMinutes: 30,
+      utilizationTarget: 100,
+    },
+  })
+
+  const result = projectCapacityScenario(dataset, 'add-1-dock')
+
+  assert.equal(result.arrivalRatePerHour, null)
+})
+
+test('projectCapacityScenario handles invalid averageArrivalIntervalMinutes', () => {
+  const dataset = makeDataset({
+    simulationConfig: {
+      averageServiceMinutes: 30,
+      averageArrivalIntervalMinutes: -5,
+      utilizationTarget: 100,
+    },
+  })
+
+  const result = projectCapacityScenario(dataset, 'add-1-dock')
+
+  assert.equal(result.arrivalRatePerHour, null)
+})
+
+test('projectCapacityScenario handles zero averageArrivalIntervalMinutes', () => {
+  const dataset = makeDataset({
+    simulationConfig: {
+      averageServiceMinutes: 30,
+      averageArrivalIntervalMinutes: 0,
+      utilizationTarget: 100,
+    },
+  })
+
+  const result = projectCapacityScenario(dataset, 'add-1-dock')
+
+  assert.equal(result.arrivalRatePerHour, null)
+})
+
+test('projectCapacityScenario handles missing utilizationTarget', () => {
+  const dataset = makeDataset({
+    simulationConfig: {
+      averageServiceMinutes: 30,
+      averageArrivalIntervalMinutes: 10,
+    },
+  })
+
+  const result = projectCapacityScenario(dataset, 'add-1-dock')
+
+  assert.equal(result.throughputPerHour, 10)
+})
+
+test('projectCapacityScenario handles invalid utilizationTarget', () => {
+  const dataset = makeDataset({
+    simulationConfig: {
+      averageServiceMinutes: 30,
+      averageArrivalIntervalMinutes: 10,
+      utilizationTarget: -50,
+    },
+  })
+
+  const result = projectCapacityScenario(dataset, 'add-1-dock')
+
+  assert.equal(result.throughputPerHour, 10)
+})
+
+test('projectCapacityScenario handles zero utilizationTarget', () => {
+  const dataset = makeDataset({
+    simulationConfig: {
+      averageServiceMinutes: 30,
+      averageArrivalIntervalMinutes: 10,
+      utilizationTarget: 0,
+    },
+  })
+
+  const result = projectCapacityScenario(dataset, 'add-1-dock')
+
+  assert.equal(result.throughputPerHour, 0)
+  assert.ok(result.assumptions.some((assumption) => assumption.includes('Configured utilization target is 0%')))
+})
+
+test('projectCapacityScenario never returns NaN or Infinity in numeric fields', () => {
+  const dataset = makeDataset({
+    simulationConfig: {
+      averageServiceMinutes: 30,
+      averageArrivalIntervalMinutes: 10,
+      utilizationTarget: 100,
+    },
+  })
+
+  const result = projectCapacityScenario(dataset, 'add-1-dock')
+
+  assert.ok(Number.isFinite(result.totalDockCapacity) || result.totalDockCapacity === null)
+  assert.ok(Number.isFinite(result.availableDockCapacity) || result.availableDockCapacity === null)
+  assert.ok(Number.isFinite(result.capacityUtilizationPercent) || result.capacityUtilizationPercent === null)
+  assert.ok(Number.isFinite(result.throughputPerHour) || result.throughputPerHour === null)
+  assert.ok(Number.isFinite(result.arrivalRatePerHour) || result.arrivalRatePerHour === null)
+  assert.ok(Number.isFinite(result.throughputBalancePerHour) || result.throughputBalancePerHour === null)
 })

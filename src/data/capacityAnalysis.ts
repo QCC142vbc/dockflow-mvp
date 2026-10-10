@@ -460,7 +460,7 @@ export function projectCapacityScenario(
   const scaledDatasetThroughput = metrics.throughputPerHour !== null && metrics.availableDockCapacity > 0
     ? metrics.throughputPerHour * availableDockCapacity / metrics.availableDockCapacity
     : null
-  const unadjustedThroughput = scaledDatasetThroughput ?? configuredThroughput
+  const unadjustedThroughput = configuredThroughput ?? scaledDatasetThroughput
   const baselineThroughput = unadjustedThroughput === null
     ? null
     : scenario === 'reduce-processing-10' ? unadjustedThroughput / processingReduction : unadjustedThroughput
@@ -490,7 +490,7 @@ export function projectCapacityScenario(
     : balance > currentBalance ? 'lower' : balance < currentBalance ? 'higher' : 'unchanged'
   const assumptions = [
     'Projection uses the active dataset only; it does not modify or save the dataset.',
-    'Dock changes scale the dataset throughput estimate; otherwise the service-time estimate and utilization target are used.',
+    'Projection calculates throughput from operational dock capacity, configured service time, and utilization target; dataset throughput is a fallback when configuration is unavailable.',
     'Added or removed docks are treated as operational capacity changes; unrelated dock states remain unchanged.',
   ]
   if (arrivalRatePerHour === null) assumptions.push('Arrival rate is unavailable in this dataset, so the throughput balance cannot be projected.')
@@ -498,6 +498,7 @@ export function projectCapacityScenario(
   if ((scenario === 'increase-arrivals-10' || scenario === 'increase-arrivals-20') && arrivalRatePerHour === null) assumptions.push('Projected utilization uses current occupied capacity as its baseline because an arrival-rate estimate is not available.')
   if (currentlyUnavailable > 0 && addDocks > 0) assumptions.push(`${plural(currentlyUnavailable, 'currently unavailable dock')} remain unavailable in the projection.`)
   if (!config && metrics.averageProcessingMinutes === null) assumptions.push('Processing-time data is missing; throughput is unavailable.')
+  if (config && config.utilizationTarget === 0) assumptions.push('Configured utilization target is 0%, resulting in zero estimated throughput.')
 
   return {
     scenario,

@@ -415,3 +415,31 @@ test('releasing an unstarted call returns that vehicle to queue and frees dock',
   assert.equal(released.state.docks[0].tone, 'available')
   assert.equal(released.events[0].type, 'dock-released')
 })
+
+test('dock ordering is deterministic when wait times and workloads are equal', () => {
+  const item = vehicle()
+  const docks = [
+    dock({ id: '03', workloadMinutes: 0 }),
+    dock({ id: '01', workloadMinutes: 0 }),
+    dock({ id: '02', workloadMinutes: 0 }),
+  ]
+  const recommendation = recommendDispatch(item, [item], docks, 40)
+  assert.equal(recommendation.recommendedDockId, '01')
+  assert.deepEqual(recommendation.alternatives.map((alt) => alt.dockId), ['01', '02', '03'])
+})
+
+test('dock capability matching is case-insensitive', () => {
+  const fixture = cargoDataset({
+    cargo: { adrRecordId: 'adr-1' },
+    adrRecords: [testAdr({ requiredDockCapabilityCode: 'adr-3' })],
+  })
+  const result = recommendDispatch(
+    fixture.dispatchVehicle,
+    [fixture.dispatchVehicle],
+    [dock({ capabilityCodes: ['ADR-3', 'REEFER'] })],
+    40,
+    fixture.dataset,
+  )
+  assert.equal(result.recommendedDockId, '01')
+  assert.equal(result.alternatives[0].capabilityMatch, 'matched')
+})

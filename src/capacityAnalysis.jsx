@@ -70,11 +70,11 @@ export default function CapacityAnalysisSection({ dataset, analysis: suppliedAna
 
     <div className="capacity-overview">
       <Metric label="Dock capacity" value={`${metrics.availableDockCapacity} / ${metrics.totalDockCapacity}`} detail="Available / total docks" />
-      <Metric label="Capacity utilization" value={number(metrics.capacityUtilizationPercent, '%')} detail={`${metrics.usedDockCapacity} docks currently in use`} tone="green" />
+      <Metric label="Capacity utilization" value={number(metrics.capacityUtilizationPercent, '%')} detail={`${metrics.usedDockCapacity} of ${metrics.availableDockCapacity} docks occupied`} tone="green" />
       <Metric label="Average / peak dock utilization" value={`${number(metrics.averageDockUtilizationPercent, '%')} / ${number(metrics.peakDockUtilizationPercent, '%')}`} detail="Snapshot utilization across available docks" />
       <Metric label="Average wait" value={metrics.averageWaitingMinutes === null ? '—' : `${number(metrics.averageWaitingMinutes)} min`} detail="Dataset KPI or queue-time estimate" tone="amber" />
-      <Metric label="Processing time" value={metrics.averageProcessingMinutes === null ? '—' : `${number(metrics.averageProcessingMinutes)} min`} detail="Dataset KPI or configured average" />
-      <Metric label="Throughput" value={metrics.throughputPerHour === null ? '—' : `${number(metrics.throughputPerHour)} / hr`} detail="Estimated operations per hour" />
+      <Metric label="Processing time" value={metrics.averageProcessingMinutes === null ? '—' : `${number(metrics.averageProcessingMinutes)} min`} detail="Configured service time or dataset KPI" />
+      <Metric label="Estimated throughput" value={metrics.throughputPerHour === null ? '—' : `${number(metrics.throughputPerHour)} / hr`} detail="Estimated operations per hour" />
       <Metric label="Queue / delayed" value={`${metrics.queueLength} / ${metrics.delayedOperations}`} detail="Operations in queue / delayed" tone={metrics.queueLength || metrics.delayedOperations ? 'amber' : ''} />
       <Metric label="Capacity surplus / deficit" value={`${metrics.capacitySurplusDocks} / ${metrics.capacityDeficitDocks}`} detail="Free docks / queued work beyond free docks" />
     </div>
@@ -102,7 +102,7 @@ export default function CapacityAnalysisSection({ dataset, analysis: suppliedAna
         </div>
         {metrics.dockMetrics.length
           ? <div className="dock-heatmap-wrap"><table className="dock-heatmap">
-            <thead><tr><th>Dock</th><th>Utilization</th><th>Avg process</th><th>Wait</th><th>Operations</th><th>Delays</th></tr></thead>
+            <thead><tr><th>Dock</th><th>Utilization</th><th>Configured service time</th><th>Wait</th><th>Operations</th><th>Delays</th></tr></thead>
             <tbody>{metrics.dockMetrics.map((dock) => <tr key={dock.dockId} className={dock.unavailable ? 'unavailable' : outlierDocks.has(dock.dockId) ? 'heat-high' : dock.utilizationPercent !== null && dock.utilizationPercent > (metrics.averageDockUtilizationPercent ?? 0) ? 'heat-mid' : ''}>
               <th scope="row">Dock {dock.dockId}<small>{dock.state}</small></th>
               <td><span className="heatmap-value">{dock.utilizationPercent === null ? 'Unavailable' : `${number(dock.utilizationPercent)}%`}</span>{dock.utilizationPercent !== null && <span className="heatmap-track"><span style={{ width: `${Math.max(0, Math.min(100, dock.utilizationPercent))}%` }} /></span>}</td>
@@ -132,7 +132,7 @@ export default function CapacityAnalysisSection({ dataset, analysis: suppliedAna
           <Metric label="Projected docks" value={`${projection.availableDockCapacity} / ${projection.totalDockCapacity}`} detail="Available / total" />
           <Metric label="Projected utilization estimate" value={number(projection.capacityUtilizationPercent, '%')} detail="Rate-based where arrival data exists" />
           <Metric label="Projected throughput" value={projection.throughputPerHour === null ? '—' : `${number(projection.throughputPerHour)} / hr`} />
-          <Metric label="Demand / capacity balance" value={projection.throughputBalancePerHour === null ? '—' : `${number(projection.throughputBalancePerHour)} / hr`} detail={projection.queuePressure === 'unavailable' ? 'Insufficient arrival-rate data' : projection.queuePressure === 'lower' ? 'Queue pressure may ease' : projection.queuePressure === 'higher' ? 'Queue pressure may increase' : 'No modeled change'} tone={projection.queuePressure === 'lower' ? 'green' : projection.queuePressure === 'higher' ? 'amber' : ''} />
+          <Metric label="Demand / capacity balance" value={projection.throughputBalancePerHour === null ? '—' : `${number(projection.throughputBalancePerHour)} / hr`} detail={projection.queuePressure === 'unavailable' ? 'Insufficient arrival-rate data' : projection.queuePressure === 'lower' ? 'Demand/capacity gap may ease' : projection.queuePressure === 'higher' ? 'Demand/capacity gap may increase' : 'No modeled change'} tone={projection.queuePressure === 'lower' ? 'green' : projection.queuePressure === 'higher' ? 'amber' : ''} />
         </div>
         <ul className="what-if-assumptions">{projection.assumptions.map((assumption) => <li key={assumption}>{assumption}</li>)}</ul>
       </section>

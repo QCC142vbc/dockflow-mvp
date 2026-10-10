@@ -60,10 +60,10 @@ export function MetricsBar({ state, analysis }) {
   const metrics = [
     { icon: <Truck size={19} />, label: 'Today’s Arrivals', value: state.arrivals, detail: `${state.queue.length} currently waiting`, tone: 'blue' },
     { icon: <Clock3 size={19} />, label: 'Average Waiting Time', value: analysis.metrics.averageWaitingMinutes === null ? '—' : `${analysis.metrics.averageWaitingMinutes} min`, detail: 'Dataset estimate', tone: 'green' },
-    { icon: <Gauge size={19} />, label: 'Active Docks', value: `${active} / ${capacity}`, detail: `${capacity} operational of ${dockCount} total · ${utilization}% used`, tone: 'amber' },
+    { icon: <Gauge size={19} />, label: 'Active Docks (occupied)', value: `${active} / ${capacity}`, detail: `${capacity} operational of ${dockCount} total · ${utilization}% used`, tone: 'amber' },
     { icon: <BellRing size={19} />, label: 'Delayed Shipments', value: String(analysis.metrics.delayedOperations).padStart(2, '0'), detail: 'Requires attention', tone: 'red' },
     { icon: <Gauge size={19} />, label: 'Estimated Throughput', value: analysis.metrics.throughputPerHour === null ? '—' : `${analysis.metrics.throughputPerHour} / hr`, detail: 'Configured service capacity', tone: 'blue' },
-    { icon: <Clock3 size={19} />, label: 'Processing Time', value: analysis.metrics.averageProcessingMinutes === null ? '—' : `${analysis.metrics.averageProcessingMinutes} min`, detail: 'Average per vehicle', tone: 'green' },
+    { icon: <Clock3 size={19} />, label: 'Processing Time', value: analysis.metrics.averageProcessingMinutes === null ? '—' : `${analysis.metrics.averageProcessingMinutes} min`, detail: 'Configured service time or dataset KPI', tone: 'green' },
     { icon: <Truck size={19} />, label: 'Available Capacity', value: `${capacity} docks`, detail: `${analysis.metrics.queueLength} waiting vehicles`, tone: 'amber' },
     { icon: <ShieldCheck size={19} />, label: 'On-time Rate', value: state.onTimeRate === undefined ? '—' : `${state.onTimeRate}%`, detail: 'Estimated from scenario', tone: 'red' },
   ]
