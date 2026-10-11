@@ -1,3 +1,4 @@
+
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import demoDataset from '../data/examples/demo-dataset.json' with { type: 'json' }
@@ -84,11 +85,12 @@ test('updateDataset creates or replaces a saved dataset', () => {
     const second = makeDataset('df-test-update', {
       datasetName: 'Updated dataset',
     })
+
     if (second.simulationConfig) {
       second.simulationConfig.datasetName = second.datasetName
     }
-    recalculateDatasetIntegrity(second)
 
+    recalculateDatasetIntegrity(second)
     updateDataset(second)
 
     const loaded = loadDatasets(demoDataset).find(
@@ -155,11 +157,12 @@ test('loadDatasets lets a saved dataset override a bundled demo with the same ID
     const saved = makeDataset(demoDataset.datasetId, {
       datasetName: 'Saved version',
     })
+
     if (saved.simulationConfig) {
       saved.simulationConfig.datasetName = saved.datasetName
     }
-    recalculateDatasetIntegrity(saved)
 
+    recalculateDatasetIntegrity(saved)
     updateDataset(saved)
 
     const loaded = loadDatasets(demoDataset)
@@ -176,6 +179,22 @@ test('parseImportedDataset accepts valid JSON and rejects malformed input', () =
   const imported = parseImportedDataset(JSON.stringify(demoDataset))
 
   assert.equal(imported.datasetId, demoDataset.datasetId)
+
+  const tampered = structuredClone(demoDataset)
+  tampered.datasetName = 'Modified without checksum update'
+
+  assert.throws(
+    () => parseImportedDataset(JSON.stringify(tampered)),
+    /checksum does not match/i,
+  )
+
+  const invalidCounts = structuredClone(demoDataset)
+  invalidCounts.integrity.recordCounts.vehicles += 1
+
+  assert.throws(
+    () => parseImportedDataset(JSON.stringify(invalidCounts)),
+    /integrity vehicles count does not match/i,
+  )
 
   assert.throws(
     () => parseImportedDataset('{invalid json'),
@@ -215,6 +234,27 @@ test('loadDatasets rejects saved data that is not a list', () => {
   })
 })
 
+test('loadDatasets rejects duplicate IDs in saved datasets', () => {
+  withStorage((values) => {
+    const first = makeDataset('df-duplicate-id', {
+      datasetName: 'First copy',
+    })
+    const second = makeDataset('df-duplicate-id', {
+      datasetName: 'Second copy',
+    })
+
+    values.set(
+      'dockflow.datasets.v1',
+      JSON.stringify([first, second]),
+    )
+
+    assert.throws(
+      () => loadDatasets(demoDataset),
+      /duplicate dataset ID/i,
+    )
+  })
+})
+
 test('saveDataset reports storage write failures', () => {
   const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
 
@@ -244,3 +284,224 @@ test('saveDataset reports storage write failures', () => {
   }
 })
 
+test('loadDatasets handles corrupted hidden demo IDs gracefully', () => {
+  withStorage((values) => {
+    values.set('dockflow.datasets.hidden-demo.v1', '{corrupted}')
+
+    // Should not throw, should load demo datasets as visible
+    const loaded = loadDatasets(demoDataset)
+    assert.ok(loaded.some((item) => item.datasetId === demoDataset.datasetId))
+  })
+})
+
+test('loadDatasets handles invalid hidden demo IDs structure gracefully', () => {
+  withStorage((values) => {
+    values.set('dockflow.datasets.hidden-demo.v1', JSON.stringify({ invalid: 'structure' }))
+
+    // Should not throw, should load demo datasets as visible
+    const loaded = loadDatasets(demoDataset)
+    assert.ok(loaded.some((item) => item.datasetId === demoDataset.datasetId))
+  })
+})
+
+
+test('saveDataset rolls back saved data when visibility update fails', () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+  const values = new Map([
+    ['dockflow.datasets.v1', '[]'],
+    ['dockflow.datasets.hidden-demo.v1', '[]'],
+  ])
+
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem(key) {
+        return values.has(key) ? values.get(key) : null
+      },
+      setItem(key, value) {
+        if (key === 'dockflow.datasets.hidden-demo.v1') {
+          throw new Error('Visibility storage failure')
+        }
+
+        values.set(key, String(value))
+      },
+    },
+  })
+
+  try {
+    assert.throws(
+      () => saveDataset(makeDataset('df-rollback-test')),
+      /Visibility storage failure/i,
+    )
+
+    assert.equal(
+      values.get('dockflow.datasets.v1'),
+      '[]',
+      'Saved datasets should be restored after a failed visibility update.',
+    )
+  } finally {
+    if (original) {
+      Object.defineProperty(globalThis, 'localStorage', original)
+    } else {
+      delete globalThis.localStorage
+    }
+  }
+})
+
+
+test('updateDataset rolls back saved data when visibility update fails', () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+  const initialDataset = makeDataset('df-rollback-update', {
+    datasetName: 'Original version',
+  })
+  const updatedDataset = makeDataset('df-rollback-update', {
+    datasetName: 'Updated version',
+  })
+
+  const values = new Map([
+    ['dockflow.datasets.v1', JSON.stringify([initialDataset])],
+    ['dockflow.datasets.hidden-demo.v1', '[]'],
+  ])
+
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem(key) {
+        return values.has(key) ? values.get(key) : null
+      },
+      setItem(key, value) {
+        if (key === 'dockflow.datasets.hidden-demo.v1') {
+          throw new Error('Visibility storage failure')
+        }
+
+        values.set(key, String(value))
+      },
+      removeItem(key) {
+        values.delete(key)
+      },
+    },
+  })
+
+  try {
+    assert.throws(
+      () => updateDataset(updatedDataset),
+      /Visibility storage failure/i,
+    )
+
+    const stored = JSON.parse(values.get('dockflow.datasets.v1'))
+
+    assert.equal(stored.length, 1)
+    assert.equal(stored[0].datasetName, 'Original version')
+  } finally {
+    if (original) {
+      Object.defineProperty(globalThis, 'localStorage', original)
+    } else {
+      delete globalThis.localStorage
+    }
+  }
+})
+
+test('deleteDataset rolls back deletion when visibility update fails', () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+  const dataset = makeDataset(demoDataset.datasetId)
+
+  const values = new Map([
+    ['dockflow.datasets.v1', JSON.stringify([dataset])],
+    ['dockflow.datasets.hidden-demo.v1', '[]'],
+  ])
+
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem(key) {
+        return values.has(key) ? values.get(key) : null
+      },
+      setItem(key, value) {
+        if (key === 'dockflow.datasets.hidden-demo.v1') {
+          throw new Error('Visibility storage failure')
+        }
+
+        values.set(key, String(value))
+      },
+      removeItem(key) {
+        values.delete(key)
+      },
+    },
+  })
+
+  try {
+    assert.throws(
+      () => deleteDataset(demoDataset.datasetId, demoDataset),
+      /Visibility storage failure/i,
+    )
+
+    const stored = JSON.parse(values.get('dockflow.datasets.v1'))
+
+    assert.equal(stored.length, 1)
+    assert.equal(stored[0].datasetId, demoDataset.datasetId)
+    assert.equal(values.get('dockflow.datasets.hidden-demo.v1'), '[]')
+  } finally {
+    if (original) {
+      Object.defineProperty(globalThis, 'localStorage', original)
+    } else {
+      delete globalThis.localStorage
+    }
+  }
+})
+
+test('writeTransaction reports rollback failures', () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+  const values = new Map([
+    ['dockflow.datasets.v1', '[]'],
+    ['dockflow.datasets.hidden-demo.v1', '[]'],
+  ])
+
+  let savedWriteAttempted = false
+
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem(key) {
+        return values.has(key) ? values.get(key) : null
+      },
+      setItem(key, value) {
+        if (key === 'dockflow.datasets.v1') {
+          if (!savedWriteAttempted) {
+            savedWriteAttempted = true
+            values.set(key, String(value))
+            return
+          }
+
+          throw new Error('Rollback storage failure')
+        }
+
+        if (key === 'dockflow.datasets.hidden-demo.v1') {
+          throw new Error('Visibility storage failure')
+        }
+
+        values.set(key, String(value))
+      },
+      removeItem(key) {
+        values.delete(key)
+      },
+    },
+  })
+
+  try {
+    assert.throws(
+      () => saveDataset(makeDataset('df-rollback-failure')),
+      (error) => {
+        assert.match(error.message, /Visibility storage failure/i)
+        assert.match(error.message, /Rollback also failed/i)
+        assert.match(error.message, /Rollback storage failure/i)
+        return true
+      },
+    )
+  } finally {
+    if (original) {
+      Object.defineProperty(globalThis, 'localStorage', original)
+    } else {
+      delete globalThis.localStorage
+    }
+  }
+})
