@@ -88,21 +88,15 @@ function App() {
     updateSavedDataset(dataset)
     const datasets = refreshLibrary()
     setActiveDatasetId(dataset.datasetId)
-    setLibrary({ datasets, error: '' })
   })
 
-    const handleImport = (dataset) => withStorageError(() => {
+  const handleImport = (dataset) => withStorageError(() => {
     if (library.datasets.some((item) => item.datasetId === dataset.datasetId)) {
       throw new Error('A dataset with this ID already exists. Rename the dataset or remove the existing copy first.')
     }
 
     saveDataset(dataset)
-
-    setLibrary((current) => ({
-      datasets: [...current.datasets, dataset],
-      error: '',
-    }))
-
+    refreshLibrary()
     setActiveDatasetId(dataset.datasetId)
   })
 
