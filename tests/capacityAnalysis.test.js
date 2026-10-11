@@ -88,6 +88,26 @@ test('analyzeCapacity calculates capacity and utilization separately', () => {
   assert.equal(metrics.peakDockUtilizationPercent, 40)
 })
 
+test('analyzeCapacity applies utilization target when estimating fallback throughput', () => {
+  const dataset = makeDataset({
+    kpis: {
+      averageWaitMinutes: 0,
+      delayedShipments: 0,
+      averageProcessingMinutes: 30,
+      queueLength: 0,
+    },
+    simulationConfig: {
+      averageServiceMinutes: 30,
+      averageArrivalIntervalMinutes: 10,
+      utilizationTarget: 50,
+    },
+  })
+
+  const { metrics } = analyzeCapacity(dataset)
+
+  assert.equal(metrics.throughputPerHour, 4)
+})
+
 test('maintenance and cleaning docks are excluded from available capacity', () => {
   const dataset = makeDataset({
     docks: [
