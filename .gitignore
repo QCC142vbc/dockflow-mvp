@@ -14,6 +14,9 @@ Thumbs.db
 *.swp
 *.swo
 coverage/
+__pycache__/
+*.py[cod]
+backend/dockflow_operations.db
 
 # Runtime simulation data (keep the directory structure and demo fixture)
 data/current/*

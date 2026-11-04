@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { operationsApi } from './data/operationsApiClient'
 import './styles.css'
 
-const EMPTY_DATA = { warehouses: [], docks: [], vehicles: [], queue: [], shipments: [], operations: [] }
+const EMPTY_DATA = { warehouses: [], docks: [], vehicles: [], queue: [], shipments: [], operations: [], adrCatalog: [] }
 const LEGACY_DATA_KEY = 'dockflow.datasets.v1'
 const SHIPMENT_STATUSES = ['REGISTERED', 'READY', 'IN_TRANSIT', 'LOADING', 'UNLOADING', 'COMPLETED', 'DELAYED', 'CANCELLED']
 const VEHICLE_STATUSES = ['REGISTERED', 'ARRIVED', 'WAITING', 'ASSIGNED', 'LOADING', 'UNLOADING', 'COMPLETED', 'CANCELLED']
@@ -13,7 +13,7 @@ const OPERATION_TYPES = ['LOADING', 'UNLOADING']
 
 const blankForms = {
   vehicle: { plate: '', carrier_name: '', direction: 'Inbound', load_type: '', pallet_count: '0', appointment_time: '', status: 'REGISTERED' },
-  shipment: { reference_number: '', vehicle_id: '', cargo_type: '', description: '', weight_kg: '', quantity: '', origin: '', destination: '', status: 'REGISTERED' },
+  shipment: { reference_number: '', vehicle_id: '', cargo_type: '', description: '', adr_catalog_id: '', weight_kg: '', quantity: '', origin: '', destination: '', status: 'REGISTERED' },
   queue: { vehicle_id: '', position: '1', priority: 'Standard', arrival_time: '', estimated_call_time: '', status: 'WAITING' },
   operation: { vehicle_id: '', shipment_id: '', dock_id: '', operation_type: 'LOADING', status: 'PENDING', actual_start_time: '', actual_end_time: '', progress: '0', notes: '' },
   dock: { status: 'available', state: 'Available', direction: 'All', progress: '0', notes: '' },
@@ -80,6 +80,7 @@ function RecordForm({ type, value, data, onChange, onClose, onSubmit, saving, er
     shipment: [
       field('reference_number', 'Shipment reference', { required: true }),
       field('vehicle_id', 'Vehicle', { options: [{ value: '', label: 'Unassigned' }, ...activeVehicles.map((vehicle) => ({ value: vehicle.id, label: `${vehicle.plate} · ${vehicle.carrier_name}` }))] }),
+      field('adr_catalog_id', 'ADR catalog entry', { options: [{ value: '', label: 'Non-ADR / not specified' }, ...data.adrCatalog.map((entry) => ({ value: entry.id, label: `${entry.un_number} · ${entry.product_name || entry.proper_shipping_name} (Class ${entry.hazard_class})` }))] }),
       field('cargo_type', 'Cargo type', { required: true }),
       field('description', 'Cargo description', { multiline: true }),
       field('weight_kg', 'Weight (kg)', { type: 'number', min: 0.01, step: 'any' }),
@@ -115,12 +116,22 @@ function RecordForm({ type, value, data, onChange, onClose, onSubmit, saving, er
       field('notes', 'Notes', { multiline: true }),
     ],
   }[type]
+  const selectedAdr = type === 'shipment' && data.adrCatalog.find((entry) => entry.id === value.adr_catalog_id)
 
   return <div role="presentation" style={{ position: 'fixed', inset: 0, zIndex: 10, background: '#020617cc', display: 'grid', placeItems: 'center', padding: 18 }}>
     <form role="dialog" aria-modal="true" aria-labelledby="record-form-title" onSubmit={(event) => { event.preventDefault(); onSubmit() }} style={{ background: '#111827', color: '#f8fafc', padding: 24, borderRadius: 10, width: 'min(680px, 100%)', maxHeight: '90vh', overflow: 'auto', display: 'grid', gap: 16 }}>
       <h2 id="record-form-title">{value.id ? 'Edit' : 'Add'} {type === 'operation' ? 'dock assignment / operation' : type}</h2>
       {error && <p role="alert" style={{ color: '#fca5a5' }}>{error}</p>}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>{fields}</div>
+      {type === 'shipment' && data.adrCatalog.length > 0 && <aside style={{ border: '1px solid #b45309', borderRadius: 6, padding: 12, color: '#fde68a' }}>
+        <strong>{data.adrCatalog.length} ADR cargo entries are unverified user-provided drafts. Verify every classification against official ADR Table A before shipping.</strong>
+      </aside>}
+      {type === 'shipment' && (selectedAdr ? <aside style={{ border: '1px solid #475569', borderRadius: 6, padding: 12, color: '#cbd5e1' }}>
+        <strong>{selectedAdr.product_name || selectedAdr.proper_shipping_name} · {selectedAdr.un_number} · Class {selectedAdr.hazard_class}{selectedAdr.packing_group ? ` · PG ${selectedAdr.packing_group}` : ''}</strong>
+        <p style={{ margin: '6px 0', color: '#fcd34d' }}>UNVERIFIED DRAFT — validate against official ADR Table A before shipment.</p>
+        <p style={{ margin: '6px 0' }}>{selectedAdr.regulatory_description || 'No additional regulatory details were provided.'}</p>
+        <small>Source: {selectedAdr.source} · {selectedAdr.reference_version}</small>
+      </aside> : data.adrCatalog.length === 0 && <p style={{ color: '#94a3b8', margin: 0 }}>The ADR catalog is empty until an authorized source file is imported.</p>)}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
         <button style={buttonStyle} type="button" onClick={onClose}>Cancel</button>
         <button style={buttonStyle} type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save record'}</button>
@@ -141,20 +152,22 @@ export function ManualOperationsApp() {
   const [error, setError] = useState('')
   const [formError, setFormError] = useState('')
   const [legacyDataAvailable, setLegacyDataAvailable] = useState(false)
+  const [notice, setNotice] = useState('')
 
   const loadData = async () => {
     setLoading(true)
     setError('')
     try {
-      const [warehouses, docks, vehicles, queue, shipments, operations] = await Promise.all([
+      const [warehouses, docks, vehicles, queue, shipments, operations, adrCatalog] = await Promise.all([
         operationsApi.getWarehouses(),
         operationsApi.getDocks(),
         operationsApi.getVehicles({ includeInactive: true }),
         operationsApi.getQueue(),
         operationsApi.getShipments(),
         operationsApi.getOperations(),
+        operationsApi.getAdrCatalog(),
       ])
-      setData({ warehouses, docks, vehicles, queue, shipments, operations })
+      setData({ warehouses, docks, vehicles, queue, shipments, operations, adrCatalog })
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Operational records could not be loaded.')
     } finally {
@@ -236,7 +249,13 @@ export function ManualOperationsApp() {
     setFormError('')
   }
 
-  const updateForm = (name, value) => setForm((current) => ({ ...current, [name]: value }))
+  const updateForm = (name, value) => setForm((current) => {
+    if (name === 'adr_catalog_id') {
+      const selectedAdr = data.adrCatalog.find((entry) => entry.id === value)
+      return { ...current, adr_catalog_id: value, ...(selectedAdr ? { cargo_type: (selectedAdr.product_name || selectedAdr.proper_shipping_name).slice(0, 100) } : {}) }
+    }
+    return { ...current, [name]: value }
+  })
 
   const saveForm = async () => {
     setSaving(true)
@@ -250,6 +269,7 @@ export function ManualOperationsApp() {
       }
       if (formType === 'shipment') payload = {
         ...form, reference_number: form.reference_number.trim(), cargo_type: form.cargo_type.trim(),
+        adr_catalog_id: form.adr_catalog_id || null,
         vehicle_id: form.vehicle_id || null, weight_kg: form.weight_kg === '' ? null : Number(form.weight_kg),
         quantity: form.quantity === '' ? null : Number(form.quantity),
       }
@@ -314,6 +334,21 @@ export function ManualOperationsApp() {
     setUser(null)
   }
 
+  const addDemoVehicles = async () => {
+    setSaving(true)
+    setError('')
+    setNotice('')
+    try {
+      const result = await operationsApi.addDemoVehiclePresets()
+      setNotice(`${result.created} DEMO vehicles added; ${result.existing} already existed.`)
+      await loadData()
+    } catch (demoError) {
+      setError(demoError instanceof Error ? demoError.message : 'Demo vehicles could not be added.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const exportLegacyData = () => {
     try {
       const content = localStorage.getItem(LEGACY_DATA_KEY)
@@ -336,7 +371,7 @@ export function ManualOperationsApp() {
   if (!user) return <Login onLogin={login} error={error} busy={saving} />
 
   const filteredVehicles = data.vehicles.filter((record) => visibleRecord(record, query, ['plate', 'carrier_name', 'status']))
-  const filteredShipments = data.shipments.filter((record) => visibleRecord(record, query, ['reference_number', 'cargo_type', 'status', 'origin', 'destination']))
+  const filteredShipments = data.shipments.filter((record) => visibleRecord(record, query, ['reference_number', 'cargo_type', 'adr_un_number', 'adr_hazard_class', 'status', 'origin', 'destination']))
   const filteredQueue = data.queue.filter((record) => {
     const vehicle = data.vehicles.find((item) => item.id === record.vehicle_id)
     return visibleRecord({ ...record, plate: vehicle?.plate }, query, ['plate', 'priority', 'status'])
@@ -364,6 +399,7 @@ export function ManualOperationsApp() {
       <div style={{ display: 'flex', gap: 10 }}><button style={buttonStyle} type="button" onClick={loadData} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh records'}</button><button style={buttonStyle} type="button" onClick={logout}>Sign out</button></div>
     </header>
     {error && <div role="alert" style={{ margin: '14px 0', padding: 12, border: '1px solid #f87171', borderRadius: 8, color: '#fecaca' }}>{error}</div>}
+    {notice && <div role="status" style={{ margin: '14px 0', padding: 12, border: '1px solid #34d399', borderRadius: 8, color: '#a7f3d0' }}>{notice}</div>}
     {legacyDataAvailable && <aside style={{ margin: '14px 0', padding: 12, border: '1px solid #64748b', borderRadius: 8, display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
       <span>Legacy browser datasets are preserved and are not used as operational records.</span><button style={buttonStyle} onClick={exportLegacyData}>Export legacy datasets</button>
     </aside>}
@@ -372,8 +408,11 @@ export function ManualOperationsApp() {
     </nav>
     <section className="panel" style={{ padding: 18, minHeight: 420 }}>
       <div style={{ display: 'flex', gap: 12, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', marginBottom: 18 }}>
-        <div><h1 style={{ margin: 0 }}>{tabTitles[activeTab]}</h1><p style={{ color: '#94a3b8', marginBottom: 0 }}>Operational data is stored in the DockFlow database.</p></div>
-        {openAdd && <button type="button" style={buttonStyle} onClick={() => beginForm(openAdd)}>＋ Add {openAdd === 'operation' ? 'assignment / operation' : openAdd}</button>}
+        <div><h1 style={{ margin: 0 }}>{tabTitles[activeTab]}</h1><p style={{ color: '#94a3b8', marginBottom: 0 }}>Operational data is stored in the DockFlow database.{activeTab === 'shipments' ? ` ${data.adrCatalog.length} unverified ADR cargo catalog entries are available.` : ''}</p></div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {activeTab === 'vehicles' && <button type="button" style={buttonStyle} onClick={addDemoVehicles} disabled={saving}>Add 5 DEMO vehicle presets</button>}
+          {openAdd && <button type="button" style={buttonStyle} onClick={() => beginForm(openAdd)}>＋ Add {openAdd === 'operation' ? 'assignment / operation' : openAdd}</button>}
+        </div>
       </div>
       {loading && <p role="status">Loading registered records…</p>}
       {!loading && activeTab === 'dashboard' && <>
@@ -402,7 +441,7 @@ export function ManualOperationsApp() {
       {!loading && !error && !['dashboard', 'docks'].includes(activeTab) && <>
         <label style={{ display: 'grid', gap: 6, maxWidth: 360, marginBottom: 12 }}>Search records<input style={inputStyle} type="search" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
         {rows.length === 0 ? <div style={{ padding: 36, textAlign: 'center' }}><h2>No {tabTitles[activeTab].toLowerCase()} found</h2><p style={{ color: '#94a3b8' }}>{['queue', 'operations'].includes(activeTab) && !hasActiveVehicles ? 'Register an active vehicle before adding this record.' : 'Add a record manually to get started.'}</p>{openAdd && <button style={buttonStyle} onClick={() => beginForm(openAdd)}>Add {openAdd}</button>}{['queue', 'operations'].includes(activeTab) && !hasActiveVehicles && <button style={buttonStyle} onClick={() => beginForm('vehicle')}>Add Vehicle</button>}</div> : <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}><thead><tr>{(activeTab === 'vehicles' ? ['Plate', 'Carrier', 'Direction', 'Status', 'Actions'] : activeTab === 'shipments' ? ['Reference', 'Cargo', 'Vehicle', 'Status', 'Actions'] : activeTab === 'queue' ? ['Position', 'Vehicle', 'Arrival', 'Priority', 'Status', 'Actions'] : ['Operation', 'Vehicle', 'Dock', 'Times', 'Status', 'Actions']).map((name) => <th key={name} style={{ textAlign: 'left', padding: 10, borderBottom: '1px solid #475569' }}>{name}</th>)}</tr></thead><tbody>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}><thead><tr>{(activeTab === 'vehicles' ? ['Plate', 'Carrier', 'Direction', 'Status', 'Actions'] : activeTab === 'shipments' ? ['Reference', 'Cargo', 'ADR', 'Vehicle', 'Status', 'Actions'] : activeTab === 'queue' ? ['Position', 'Vehicle', 'Arrival', 'Priority', 'Status', 'Actions'] : ['Operation', 'Vehicle', 'Dock', 'Times', 'Status', 'Actions']).map((name) => <th key={name} style={{ textAlign: 'left', padding: 10, borderBottom: '1px solid #475569' }}>{name}</th>)}</tr></thead><tbody>
             {rows.map((record) => {
               const vehicle = data.vehicles.find((item) => item.id === record.vehicle_id)
               const dock = data.docks.find((item) => item.id === record.dock_id)
@@ -411,7 +450,7 @@ export function ManualOperationsApp() {
               const cells = activeTab === 'vehicles'
                 ? [record.plate, record.carrier_name, record.direction, record.status, actions]
                 : activeTab === 'shipments'
-                  ? [record.reference_number, record.cargo_type, vehicle?.plate ?? 'Unassigned', record.status, actions]
+                  ? [record.reference_number, record.cargo_type, record.adr_un_number ? `${record.adr_un_number} · Class ${record.adr_hazard_class}` : '—', vehicle?.plate ?? 'Unassigned', record.status, actions]
                   : activeTab === 'queue'
                     ? [record.position, vehicle?.plate ?? 'Unknown vehicle', record.arrival_time, record.priority, record.status, actions]
                     : [`${record.operation_type}${shipment ? ` · ${shipment.reference_number}` : ''}`, vehicle?.plate ?? 'Unassigned', dock?.dock_code ?? 'Unassigned', `${record.actual_start_time ?? '—'} → ${record.actual_end_time ?? '—'}`, record.status, actions]

@@ -120,11 +120,23 @@ class VehicleResponse(VehicleBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class DemoVehiclePresetResponse(BaseModel):
+    created: int
+    existing: int
+    vehicles: list[VehicleResponse]
+
+
 class ShipmentBase(BaseModel):
     reference_number: str = Field(min_length=1, max_length=100)
     vehicle_id: str | None = None
     cargo_type: str = Field(min_length=1, max_length=100)
     description: str | None = Field(default=None, max_length=2000)
+    adr_catalog_id: str | None = None
+    adr_un_number: str | None = None
+    adr_proper_shipping_name: str | None = None
+    adr_hazard_class: str | None = None
+    adr_packing_group: str | None = None
+    adr_regulatory_details: dict | None = None
     weight_kg: float | None = Field(default=None, gt=0)
     quantity: int | None = Field(default=None, gt=0)
     origin: str | None = Field(default=None, max_length=200)
@@ -141,6 +153,12 @@ class ShipmentUpdate(BaseModel):
     vehicle_id: str | None = None
     cargo_type: str | None = Field(default=None, min_length=1, max_length=100)
     description: str | None = Field(default=None, max_length=2000)
+    adr_catalog_id: str | None = None
+    adr_un_number: str | None = None
+    adr_proper_shipping_name: str | None = None
+    adr_hazard_class: str | None = None
+    adr_packing_group: str | None = None
+    adr_regulatory_details: dict | None = None
     weight_kg: float | None = Field(default=None, gt=0)
     quantity: int | None = Field(default=None, gt=0)
     origin: str | None = Field(default=None, max_length=200)

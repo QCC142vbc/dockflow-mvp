@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_OPERATIONS_API_URL || 'http://localhost:8001/api/v1'
+const API_BASE = import.meta.env.VITE_OPERATIONS_API_URL || `http://${window.location.hostname}:8001/api/v1`
 
 class OperationsApiClient {
   constructor() {
@@ -105,6 +105,10 @@ class OperationsApiClient {
     return this.request(`/dispatch/vehicles?${query}`)
   }
 
+  async addDemoVehiclePresets() {
+    return this.request('/dispatch/vehicles/demo-presets', { method: 'POST' })
+  }
+
   async createVehicle(vehicleData) {
     return this.request('/dispatch/vehicles', {
       method: 'POST',
@@ -182,6 +186,10 @@ class OperationsApiClient {
     if (filters.search) query.set('search', filters.search)
     if (filters.status) query.set('shipment_status', filters.status)
     return this.request(`/shipments/?${query}`)
+  }
+
+  async getAdrCatalog() {
+    return this.request('/adr-catalog/')
   }
 
   async createShipment(shipmentData) {

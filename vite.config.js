@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   base: '/dockflow-mvp/',
   server: {
-    host: 'localhost',
+    host: '0.0.0.0',
     port: 5175,
     strictPort: true
   },

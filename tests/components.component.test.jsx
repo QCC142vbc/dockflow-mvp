@@ -18,6 +18,9 @@ const operationsApiMock = vi.hoisted(() => ({
   getQueue: vi.fn(),
   getShipments: vi.fn(),
   getOperations: vi.fn(),
+  getAdrCatalog: vi.fn(),
+  addDemoVehiclePresets: vi.fn(),
+  createShipment: vi.fn(),
 }))
 
 vi.mock('../src/data/operationsApiClient', () => ({ operationsApi: operationsApiMock }))
@@ -41,6 +44,8 @@ describe('DockFlow dashboard components', () => {
     operationsApiMock.getQueue.mockResolvedValue([])
     operationsApiMock.getShipments.mockResolvedValue([])
     operationsApiMock.getOperations.mockResolvedValue([])
+    operationsApiMock.getAdrCatalog.mockResolvedValue([])
+    operationsApiMock.createShipment.mockResolvedValue({})
   })
 
   it('starts with an empty state and no fabricated KPI values', async () => {
@@ -55,6 +60,49 @@ describe('DockFlow dashboard components', () => {
     expect(screen.getByRole('link', { name: 'Add Dock' })).toBeTruthy()
     expect(screen.getByText('Dock utilization').closest('article').querySelector('strong').textContent).toBe('—')
     expect(operationsApiMock.getVehicles).toHaveBeenCalledWith({ includeInactive: true })
+  })
+
+  it('selects an ADR catalog entry and persists it with the shipment', async () => {
+    const adrEntry = {
+      id: 'adr-1',
+      un_number: 'UN 9999',
+      proper_shipping_name: 'TEST SUBSTANCE (DEMO ONLY)',
+      hazard_class: '3',
+      packing_group: 'II',
+      source: 'Test fixture',
+      reference_version: 'TEST',
+    }
+    operationsApiMock.getAdrCatalog.mockResolvedValue([adrEntry])
+    render(<ManualOperationsApp />)
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'operator@example.com' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Shipments & Cargo' }))
+    fireEvent.click(screen.getByRole('button', { name: '＋ Add shipment' }))
+    fireEvent.change(screen.getByLabelText('Shipment reference'), { target: { value: 'SHIP-ADR-TEST' } })
+    fireEvent.change(screen.getByLabelText('ADR catalog entry'), { target: { value: adrEntry.id } })
+    expect(screen.getByLabelText('Cargo type').value).toBe(adrEntry.proper_shipping_name)
+    fireEvent.click(screen.getByRole('button', { name: 'Save record' }))
+
+    await waitFor(() => expect(operationsApiMock.createShipment).toHaveBeenCalledWith(expect.objectContaining({
+      reference_number: 'SHIP-ADR-TEST',
+      cargo_type: adrEntry.proper_shipping_name,
+      adr_catalog_id: adrEntry.id,
+    })))
+  })
+
+  it('loads the DEMO vehicle presets only when explicitly requested', async () => {
+    operationsApiMock.addDemoVehiclePresets.mockResolvedValue({ created: 5, existing: 0 })
+    render(<ManualOperationsApp />)
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'operator@example.com' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Vehicles' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add 5 DEMO vehicle presets' }))
+    expect(await screen.findByRole('status')).toBeTruthy()
+    expect(operationsApiMock.addDemoVehiclePresets).toHaveBeenCalledOnce()
   })
 
   it('renders the no-call state and current vehicle call details', () => {

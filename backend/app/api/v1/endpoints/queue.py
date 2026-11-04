@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_roles
 from app.models import Carrier, Operation, QueueEntry, User, Vehicle
-from app.schemas import QueueEntryCreate, QueueEntryResponse, QueueEntryUpdate, VehicleCreate, VehicleResponse, VehicleUpdate
+from app.schemas import DemoVehiclePresetResponse, QueueEntryCreate, QueueEntryResponse, QueueEntryUpdate, VehicleCreate, VehicleResponse, VehicleUpdate
 
 router = APIRouter()
 operator = Depends(require_roles("ADMIN", "OPERATOR", "WAREHOUSE_MANAGER", "WAREHOUSE_STAFF"))
@@ -42,6 +42,40 @@ def create_vehicle(
     db.commit()
     db.refresh(vehicle)
     return vehicle
+
+
+@router.post("/vehicles/demo-presets", response_model=DemoVehiclePresetResponse)
+def add_demo_vehicle_presets(
+    db: Session = Depends(get_db),
+    current_user: User = operator,
+):
+    presets = [
+        ("DEMO-TRUCK-01", "DEMO Carrier A", "Inbound", "Curtainsider trailer", 33),
+        ("DEMO-TRUCK-02", "DEMO Carrier B", "Outbound", "Refrigerated trailer", 26),
+        ("DEMO-TRUCK-03", "DEMO Carrier C", "Inbound", "Box truck", 18),
+        ("DEMO-TRUCK-04", "DEMO Carrier D", "Outbound", "Flatbed trailer", 20),
+        ("DEMO-TRUCK-05", "DEMO Carrier E", "Inbound", "Tanker trailer", 0),
+    ]
+    created = 0
+    for plate, carrier_name, direction, load_type, pallet_count in presets:
+        if db.scalar(select(Vehicle.id).where(Vehicle.plate == plate)):
+            continue
+        db.add(
+            Vehicle(
+                plate=plate,
+                carrier_name=carrier_name,
+                direction=direction,
+                load_type=load_type,
+                pallet_count=pallet_count,
+                status="REGISTERED",
+            )
+        )
+        created += 1
+    db.commit()
+    vehicles = db.scalars(
+        select(Vehicle).where(Vehicle.plate.in_([preset[0] for preset in presets])).order_by(Vehicle.plate)
+    ).all()
+    return {"created": created, "existing": len(presets) - created, "vehicles": vehicles}
 
 
 @router.patch("/vehicles/{vehicle_id}", response_model=VehicleResponse)

@@ -112,6 +112,40 @@ class Vehicle(Base):
     )
 
 
+class ADRCatalogEntry(Base):
+    __tablename__ = "adr_catalog"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    un_number: Mapped[str] = mapped_column(String(7), unique=True, nullable=False, index=True)
+    product_name: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    proper_shipping_name: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    hazard_class: Mapped[str] = mapped_column(String(20), nullable=False)
+    classification_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    packing_group: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    label_codes: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    special_provisions: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    packing_instructions: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    transport_category: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    tunnel_restriction_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    limited_quantity: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    excepted_quantity: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    regulatory_description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source: Mapped[str] = mapped_column(String(300), nullable=False)
+    source_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    reference_version: Mapped[str] = mapped_column(String(50), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        UTCDateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        UTCDateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
 class Shipment(Base):
     __tablename__ = "shipments"
 
@@ -124,6 +158,14 @@ class Shipment(Base):
     )
     cargo_type: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    adr_catalog_id: Mapped[str | None] = mapped_column(
+        ForeignKey("adr_catalog.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    adr_un_number: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    adr_proper_shipping_name: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    adr_hazard_class: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    adr_packing_group: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    adr_regulatory_details: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     weight_kg: Mapped[float | None] = mapped_column(Float, nullable=True)
     quantity: Mapped[int | None] = mapped_column(Integer, nullable=True)
     origin: Mapped[str | None] = mapped_column(String(200), nullable=True)

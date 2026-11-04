@@ -1,0 +1,151 @@
+un_number	product_name	hazard_class	packing_group
+UN 1090	Aceton	3	II
+UN 1104	Amil-acetátok	3	III
+UN 1114	Benzol	3	II
+UN 1120	Butanolok	3	III
+UN 1145	Ciklohexán	3	II
+UN 1170	Etanololdat	3	II/III*
+UN 1173	Etil-acetát	3	II
+UN 1193	Etil-metil-keton	3	II
+UN 1202	Gázolaj	3	III
+UN 1203	Motorbenzin	3	II
+UN 1219	Izopropanol	3	II
+UN 1223	Kerozin	3	III
+UN 1230	Metanol	3 (6.1)	II
+UN 1268	Kőolajpárlatok, m.n.n.	3	II/III*
+UN 1294	Toluol	3	II
+UN 1300	Terpentinpótló	3	III
+UN 1307	Xilolok	3	III
+UN 1863	Repülőgép-üzemanyag, turbinákhoz	3	III
+UN 1993	Gyúlékony folyadék, m.n.n.	3	II/III*
+UN 3295	Szénhidrogének, folyékonyak, m.n.n.	3	II/III*
+UN 1789	Sósav	8	II
+UN 1805	Foszforsav	8	III
+UN 1809	Foszfor-triklorid	6.1 (8)	I
+UN 1814	Kálium-hidroxid-oldat	8	II
+UN 1824	Nátrium-hidroxid-oldat	8	II
+UN 1830	Kénsav	8	II
+UN 1831	Füstölgő kénsav	8	I
+UN 1832	Elhasznált kénsav	8	II
+UN 1840	Cink-klorid-oldat	8	III
+UN 1760	Maró folyadék, m.n.n.	8	II/III*
+UN 1719	Maró lúgos folyadék, m.n.n.	8	II/III*
+UN 1788	Brómhidrogénsav	8	II
+UN 1790	Hidrogén-fluorid-oldat	8 (6.1)	I/II*
+UN 1802	Perklórsav	5.1 (8)	I/II*
+UN 1818	Szilícium-tetraklorid	8	II
+UN 1823	Szilárd nátrium-hidroxid	8	II
+UN 1833	Kénes sav	8	II
+UN 1834	Kén-trioxid	8	I
+UN 1908	Kloritoldat	8	II
+UN 3264	Maró savas szervetlen folyadék, m.n.n.	8	II/III*
+UN 1155	Dietil-éter	3	I
+UN 1169	Extraktumok, aromás, folyékony	3	II/III*
+UN 1172	Etilénglikol-monoetil-éter-acetát	3	III
+UN 1180	Butil-acetát	3	III
+UN 1188	Etilénglikol-monoetil-éter	3	III
+UN 1198	Formaldehidoldat, gyúlékony	3 (8)	III
+UN 1231	Metil-acetát	3	II
+UN 1247	Metil-metakrilát, monomer	3	II
+UN 1263	Festék	3	II/III*
+UN 1266	Illatszeripari termékek	3	II/III*
+UN 1299	Terpentin	3	III
+UN 1301	Vinil-acetát, stabilizált	3	II
+UN 1303	Vinil-toluol, stabilizált	3	III
+UN 1866	Műgyantaoldat	3	II/III*
+UN 1992	Gyúlékony folyadék, mérgező, m.n.n.	3 (6.1)	II/III*
+UN 2059	Nitroglicerin alkoholos oldatban	3	II
+UN 2294	N-metilanilin	6.1	II
+UN 2319	Terpén-szénhidrogének	3	III
+UN 2348	Butil-akrilát, stabilizált	3	III
+UN 3082	Környezetre veszélyes folyékony anyag, m.n.n.	9	III
+UN 1001	Acetilén, oldott	2.1	N/A
+UN 1002	Sűrített levegő	2.2	N/A
+UN 1005	Ammónia, vízmentes	2.3 (8)	N/A
+UN 1006	Argon, sűrített	2.2	N/A
+UN 1011	Bután	2.1	N/A
+UN 1013	Szén-dioxid	2.2	N/A
+UN 1017	Klór	2.3 (5.1, 8)	N/A
+UN 1018	Klór-difluor-metán (R22)	2.2	N/A
+UN 1020	Klór-trifluor-metán (R13)	2.2	N/A
+UN 1021	1,1,1-trifluor-etán (R143a)	2.1	N/A
+UN 1032	Dimetil-amin, vízmentes	2.1 (8)	N/A
+UN 1035	Etán	2.1	N/A
+UN 1040	Etilén-oxid	2.3 (2.1)	N/A
+UN 1046	Hélium, sűrített	2.2	N/A
+UN 1049	Hidrogén, sűrített	2.1	N/A
+UN 1053	Hidrogén-szulfid	2.3 (2.1)	N/A
+UN 1066	Nitrogén, sűrített	2.2	N/A
+UN 1072	Oxigén, sűrített	2.2 (5.1)	N/A
+UN 1075	Cseppfolyósított kőolajgáz (LPG)	2.1	N/A
+UN 1950	Aeroszolok	2.1 / 2.2	N/A
+UN 1547	Anilin	6.1	II
+UN 1556	Arzénvegyület, szervetlen, folyékony, m.n.n.	6.1	I/II*
+UN 1564	Báriumvegyület, m.n.n.	6.1	II
+UN 1575	Kalcium-cianid	6.1	II
+UN 1588	Arzénvegyület, szilárd, m.n.n.	6.1	II
+UN 1593	Diklór-metán	6.1	III
+UN 1602	Festékanyag, folyékony, mérgező, m.n.n.	6.1	III
+UN 1613	Hidrogén-cianid vizes oldata	6.1	I
+UN 1624	Higany-klorid	6.1	II
+UN 1638	Kadmiumvegyület, m.n.n.	6.1	II
+UN 1648	Acetonitril	3 (6.1)	II
+UN 1689	Nátrium-cianid	6.1	I
+UN 1690	Nátrium-fluorid	6.1	III
+UN 1710	Triklór-etilén	6.1	III
+UN 2810	Mérgező folyadék, szerves, m.n.n.	6.1	II/III*
+UN 1442	Ammónium-perklorát	5.1	II
+UN 1450	Bárium-perklorát	5.1	II
+UN 1454	Kalcium-nitrát	5.1	III
+UN 1479	Oxidáló szilárd anyag, m.n.n.	5.1	II/III*
+UN 1486	Kálium-nitrát	5.1	III
+UN 1498	Nátrium-nitrát	5.1	III
+UN 1500	Nátrium-nitrit	5.1 (6.1)	III
+UN 1502	Nátrium-perklorát	5.1	II
+UN 1510	Tetranitrometán	5.1 (6.1)	I
+UN 1748	Kalcium-hipoklorit, száraz	5.1 (8)	II
+UN 1873	Perklórsav	5.1 (8)	I/II*
+UN 2014	Hidrogén-peroxid, vizes oldat	5.1 (8)	II
+UN 2015	Hidrogén-peroxid, stabilizált	5.1 (8)	I
+UN 3105	Szerves peroxid, B típus, folyékony	5.2	N/A
+UN 3109	Szerves peroxid, F típus, folyékony	5.2	N/A
+UN 1325	Gyúlékony szilárd szerves anyag, m.n.n.	4.1	II/III*
+UN 1334	Naftalin, nyers vagy finomított	4.1	III
+UN 1350	Kén	4.1	III
+UN 1361	Szén, állati vagy növényi eredetű	4.2	III
+UN 1362	Aktív szén	4.2	III
+UN 1381	Foszfor, fehér vagy sárga, víz alatt	4.2	I
+UN 1402	Kalcium-karbid	4.3	I
+UN 1408	Ferroszilícium	4.3	II/III*
+UN 1436	Cinkpor	4.3	II
+UN 1869	Magnézium, gyúlékony szilárd anyag	4.1	III
+UN 1389	Alkáli fémek ötvözete, folyékony	4.3	I
+UN 1390	Alkáli fémek amidjai	4.3	I
+UN 1391	Alkálifém-diszperzió	4.3	I/II*
+UN 1398	Alumínium-szilícium-por	4.3	II
+UN 1415	Lítium	4.3	I
+UN 1428	Nátrium	4.3	I
+UN 1431	Nátrium-metoxid	4.2 (8)	II
+UN 1680	Kálium-cianid	6.1	I
+UN 1813	Kálium-hidroxid, szilárd	8	II
+UN 3260	Maró szilárd anyag, savas, szervetlen, m.n.n.	8	II/III*
+UN 2794	Ólomakkumulátorok, folyékony savval töltve	8	N/A
+UN 2795	Ólomakkumulátorok, lúggal töltve	8	N/A
+UN 2800	Akkumulátorok, nedves, szivárgásmentes	8	N/A
+UN 3028	Akkumulátorok, száraz, kálium-hidroxidot tartalmazó	8	N/A
+UN 3090	Lítiumfém-akkumulátorok	9	N/A
+UN 3091	Lítiumfém-akkumulátorok berendezésben vagy berendezéssel együtt	9	N/A
+UN 3480	Lítiumion-akkumulátorok	9	N/A
+UN 3481	Lítiumion-akkumulátorok berendezésben vagy berendezéssel együtt	9	N/A
+UN 3551	Nátriumion-akkumulátorok	9	N/A
+UN 3552	Nátriumion-akkumulátorok berendezésben vagy berendezéssel együtt	9	N/A
+UN 1845	Szárazjég (szilárd szén-dioxid)	9	N/A
+UN 2211	Polimer gyöngyök, habosodó	9	III
+UN 2212	Azbeszt, amfibol	9	II
+UN 2590	Azbeszt, krizotil	9	III
+UN 2807	Mágnesezett anyag	9	N/A
+UN 2814	Fertőző anyag, emberre veszélyes	6.2	N/A
+UN 2900	Fertőző anyag, csak állatokra veszélyes	6.2	N/A
+UN 3077	Környezetre veszélyes szilárd anyag, m.n.n.	9	III
+UN 3268	Biztonsági berendezések, elektromos működtetésű	9	N/A
+UN 3373	Biológiai anyag, B kategória	6.2	N/A
