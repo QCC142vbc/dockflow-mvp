@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   base: '/dockflow-mvp/',
@@ -6,5 +6,11 @@ export default defineConfig({
     host: 'localhost',
     port: 5175,
     strictPort: true
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: './tests/setup.js',
+    restoreMocks: true,
+    include: ['tests/**/*.component.test.jsx'],
   }
 })

@@ -1,14 +1,14 @@
 import React, { useEffect, useRef } from 'react'
-import { ArrowRight, BellRing, CalendarDays, Clock3, FileCheck2, Gauge, Info, MapPin, Package, Radio, RefreshCw, ShieldCheck, Truck, X, AlertTriangle, Wrench, FileWarning } from 'lucide-react'
+import { ArrowRight, BellRing, CalendarDays, Clock3, FileCheck2, Gauge, Info, MapPin, Package, ShieldCheck, Truck, X, AlertTriangle, Wrench, FileWarning } from 'lucide-react'
 import { formatElapsed, statusMeta } from './data/operationsData'
 
-export function Header({ now, warehouse }) {
+export function Header({ now, warehouse, backendOnline = false }) {
   const clockOptions = { timeZone: 'Europe/Budapest', hour12: false }
   const dateOptions = { timeZone: 'Europe/Budapest', weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' }
   return <header className="topbar">
     <div className="brand-lockup"><div className="brand-mark"><Package size={22} /></div><div><div className="brand-name">Dock<span>Flow</span></div><div className="brand-subtitle">Dock Assignment &amp; Loading Operations</div></div></div>
     <div className="clock-block"><div className="date-line"><CalendarDays size={14} /> {now.toLocaleDateString('en-US', dateOptions)}</div><div className="live-clock">{now.toLocaleTimeString('en-GB', clockOptions)}</div></div>
-    <div className="site-block"><div className="site-name">{warehouse?.name ?? 'Central Logistics Hub'}</div><div className="site-meta"><span className="connection"><span className="connection-dot" /> System Connected</span><span className="divider" /><span>{warehouse?.shift ?? 'Morning Shift · 06:00—14:00'}</span></div></div>
+    <div className="site-block"><div className="site-name">{warehouse?.name ?? 'No warehouse registered'}</div><div className="site-meta"><span className="connection"><span className={`connection-dot ${backendOnline ? 'online' : 'local'}`} /> {backendOnline ? 'Backend Online (Port 8001)' : 'Backend Offline'}</span><span className="divider" /><span>{warehouse?.shift ?? 'Warehouse shift not configured'}</span></div></div>
   </header>
 }
 
@@ -32,8 +32,8 @@ export function AttentionPanel({ alerts = [], docks = [], onSelect, onSelectVehi
   })}</div></section>
 }
 
-export function QueueTable({ queue, live, setLive, selectedVehicleId, onSelectVehicle }) {
-  return <section className="queue-panel panel"><div className="section-heading"><div><div className="eyebrow">Next in sequence</div><h2>Waiting Vehicles <span className="count-badge">{String(queue.length).padStart(2, '0')}</span></h2></div><button className={`live-toggle ${live ? 'active' : ''}`} onClick={() => setLive(!live)} aria-pressed={live} aria-label={live ? 'Pause live simulation' : 'Resume live simulation'}><span className="toggle-track"><span /></span><span>{live ? 'Live simulation' : 'Simulation paused'}</span><RefreshCw size={14} /></button></div><div className="queue-table-wrap"><table className="queue-table"><thead><tr><th>Queue</th><th>License plate</th><th>Carrier</th><th>Load type</th><th>Arrived</th><th>Est. call</th><th>Priority</th></tr></thead><tbody>{queue.map((item, index) => <tr className={`${index === 0 ? 'next-row' : ''} ${selectedVehicleId === item.vehicleId ? 'dispatch-selected' : ''}`} key={`${item.plate}-${item.queue}`}><td><span className="queue-number">{item.queue}</span>{index === 0 && <span className="next-tag">NEXT</span>}</td><td className="plate-cell"><button type="button" className="queue-select-vehicle" onClick={() => onSelectVehicle(item.vehicleId)} aria-pressed={selectedVehicleId === item.vehicleId} aria-label={`Select ${item.plate} for dispatch`}>{item.plate}</button></td><td className="carrier-cell">{item.carrier}</td><td>{item.load}</td><td className="muted-cell">{item.arrival}</td><td className="call-time">{item.call}</td><td><span className={`priority-tag ${item.tone}`}><span />{item.status === 'on-hold' ? 'On hold' : item.status === 'delayed' ? 'Delayed' : item.priority}</span></td></tr>)}</tbody></table>{queue.length === 0 && <div className="queue-empty">No vehicles are waiting in this dataset.</div>}</div></section>
+export function QueueTable({ queue, selectedVehicleId, onSelectVehicle }) {
+  return <section className="queue-panel panel"><div className="section-heading"><div><div className="eyebrow">Next in sequence</div><h2>Waiting Vehicles <span className="count-badge">{String(queue.length).padStart(2, '0')}</span></h2></div></div><div className="queue-table-wrap"><table className="queue-table"><thead><tr><th>Queue</th><th>License plate</th><th>Carrier</th><th>Load type</th><th>Arrived</th><th>Est. call</th><th>Priority</th></tr></thead><tbody>{queue.map((item, index) => <tr className={`${index === 0 ? 'next-row' : ''} ${selectedVehicleId === item.vehicleId ? 'dispatch-selected' : ''}`} key={`${item.plate}-${item.queue}`}><td><span className="queue-number">{item.queue}</span>{index === 0 && <span className="next-tag">NEXT</span>}</td><td className="plate-cell"><button type="button" className="queue-select-vehicle" onClick={() => onSelectVehicle(item.vehicleId)} aria-pressed={selectedVehicleId === item.vehicleId} aria-label={`Select ${item.plate} for dispatch`}>{item.plate}</button></td><td className="carrier-cell">{item.carrier}</td><td>{item.load}</td><td className="muted-cell">{item.arrival}</td><td className="call-time">{item.call}</td><td><span className={`priority-tag ${item.tone}`}><span />{item.status === 'on-hold' ? 'On hold' : item.status === 'delayed' ? 'Delayed' : item.priority}</span></td></tr>)}</tbody></table>{queue.length === 0 && <div className="queue-empty">No vehicles are waiting in this dataset.</div>}</div></section>
 }
 
 export function DockCard({ dock, onSelect }) {
@@ -43,7 +43,7 @@ export function DockCard({ dock, onSelect }) {
 
 export function DockGrid({ docks, statusFilter, setStatusFilter, directionFilter, setDirectionFilter, onSelect }) {
   const filters = ['All', 'Available', 'Loading', 'Unloading', 'Delayed', 'Completed']
-  return <section className="dock-panel panel"><div className="section-heading dock-heading"><div><div className="eyebrow">Live floor view</div><h2>Dock Status</h2></div><div className="filters"><div className="filter-group">{filters.map((filter) => <button key={filter} className={statusFilter === filter ? 'filter-active' : ''} onClick={() => setStatusFilter(filter)} aria-pressed={statusFilter === filter} aria-label={`Filter docks by ${filter.toLowerCase()}`}>{filter}</button>)}</div><label className="direction-filter"><span>Direction</span><select value={directionFilter} onChange={(event) => setDirectionFilter(event.target.value)} aria-label="Filter by shipment direction"><option>All</option><option>Inbound</option><option>Outbound</option></select></label></div></div><div className="dock-grid">{docks.map((dock) => <DockCard key={dock.id} dock={dock} onSelect={onSelect} />)}</div><DockLegend docks={docks} /></section>
+  return <section className="dock-panel panel"><div className="section-heading dock-heading"><div><div className="eyebrow">Manual floor view</div><h2>Dock Status</h2></div><div className="filters"><div className="filter-group">{filters.map((filter) => <button key={filter} className={statusFilter === filter ? 'filter-active' : ''} onClick={() => setStatusFilter(filter)} aria-pressed={statusFilter === filter} aria-label={`Filter docks by ${filter.toLowerCase()}`}>{filter}</button>)}</div><label className="direction-filter"><span>Direction</span><select value={directionFilter} onChange={(event) => setDirectionFilter(event.target.value)} aria-label="Filter by shipment direction"><option>All</option><option>Inbound</option><option>Outbound</option></select></label></div></div><div className="dock-grid">{docks.map((dock) => <DockCard key={dock.id} dock={dock} onSelect={onSelect} />)}</div><DockLegend docks={docks} /></section>
 }
 
 function DockLegend({ docks }) {
@@ -65,9 +65,9 @@ export function MetricsBar({ state, analysis }) {
     { icon: <Gauge size={19} />, label: 'Estimated Throughput', value: analysis.metrics.throughputPerHour === null ? '—' : `${analysis.metrics.throughputPerHour} / hr`, detail: 'Configured service capacity', tone: 'blue' },
     { icon: <Clock3 size={19} />, label: 'Processing Time', value: analysis.metrics.averageProcessingMinutes === null ? '—' : `${analysis.metrics.averageProcessingMinutes} min`, detail: 'Configured service time or dataset KPI', tone: 'green' },
     { icon: <Truck size={19} />, label: 'Available Capacity', value: `${capacity} docks`, detail: `${analysis.metrics.queueLength} waiting vehicles`, tone: 'amber' },
-    { icon: <ShieldCheck size={19} />, label: 'On-time Rate', value: state.onTimeRate === undefined ? '—' : `${state.onTimeRate}%`, detail: 'Estimated from scenario', tone: 'red' },
+    { icon: <ShieldCheck size={19} />, label: 'On-time Rate', value: '—', detail: 'Unavailable without recorded shipment timestamps', tone: 'red' },
   ]
-  return <footer className="metrics">{metrics.map((metric) => <div className="metric" key={metric.label}><div className={`metric-icon ${metric.tone}`}>{metric.icon}</div><div><span className="metric-label">{metric.label}</span><strong className="metric-value">{metric.value}</strong><span className={`metric-detail ${metric.tone}`}>{metric.detail}</span></div></div>)}<div className="footer-sync"><Radio size={14} /> Live simulation <strong>· 18 sec cycle</strong></div></footer>
+  return <footer className="metrics">{metrics.map((metric) => <div className="metric" key={metric.label}><div className={`metric-icon ${metric.tone}`}>{metric.icon}</div><div><span className="metric-label">{metric.label}</span><strong className="metric-value">{metric.value}</strong><span className={`metric-detail ${metric.tone}`}>{metric.detail}</span></div></div>)}<div className="footer-sync">Metrics use registered records</div></footer>
 }
 
 export function DockDetailModal({ dock, onClose }) {

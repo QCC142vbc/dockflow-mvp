@@ -2,7 +2,6 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import demoDataset from '../data/examples/demo-dataset.json' with { type: 'json' }
 import { validateCargoComplianceData } from '../src/data/cargoComplianceValidation.ts'
-import { createStarterContainerTypes } from '../src/data/containerTypeDefaults.ts'
 import {
   deleteContainerType,
   duplicateContainerType,
@@ -10,7 +9,7 @@ import {
   setContainerTypeActive,
   upsertContainerType,
 } from '../src/data/containerTypeLibrary.ts'
-import { recalculateDatasetIntegrity } from '../src/data/datasetFactory.ts'
+import { recalculateDatasetIntegrity } from '../src/data/legacyDatasetValidation.ts'
 import { loadDatasets, updateDataset } from '../src/data/datasetStore.js'
 
 const emptyData = () => ({ cargo: [], containerTypes: [], adrRecords: [], handlingRequirements: [] })
@@ -117,16 +116,6 @@ test('deactivation preserves references and safe deletion refuses referenced typ
   assert.equal(deleteContainerType({ ...deactivated, cargo: [] }, 'container-custom').containerTypes.length, 0)
 })
 
-test('starter types are normal configurable and independently mutable records', () => {
-  const first = createStarterContainerTypes()
-  const second = createStarterContainerTypes()
-  assert.equal(first.length, 9)
-  assert.equal(new Set(first.map((item) => item.code)).size, first.length)
-  assert.deepEqual(validateCargoComplianceData({ ...emptyData(), containerTypes: first }, new Set()), [])
-  first[0].name = 'Changed in working copy'
-  assert.notEqual(first[0].name, second[0].name)
-})
-
 test('container catalog creation and edits persist through the existing dataset store', () => {
   const values = new Map()
   Object.defineProperty(globalThis, 'localStorage', {
@@ -137,13 +126,10 @@ test('container catalog creation and edits persist through the existing dataset 
     },
   })
   try {
-    const createdCatalog = upsertContainerType(
-      { ...emptyData(), containerTypes: createStarterContainerTypes() },
-      container(),
-    )
+    const createdCatalog = upsertContainerType(emptyData(), container())
     const firstSave = recalculateDatasetIntegrity({ ...structuredClone(demoDataset), cargoCompliance: createdCatalog })
     updateDataset(firstSave)
-    assert.equal(loadDatasets(demoDataset).find((item) => item.datasetId === demoDataset.datasetId).cargoCompliance.containerTypes.length, 10)
+    assert.equal(loadDatasets(demoDataset).find((item) => item.datasetId === demoDataset.datasetId).cargoCompliance.containerTypes.length, 1)
 
     const editedCatalog = upsertContainerType(createdCatalog, container({ name: 'Persisted edit', code: 'CUST2' }))
     const secondSave = recalculateDatasetIntegrity({ ...firstSave, cargoCompliance: editedCatalog })

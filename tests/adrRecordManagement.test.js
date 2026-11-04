@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import demoDataset from '../data/examples/demo-dataset.json' with { type: 'json' }
-import { recalculateDatasetIntegrity, validateOperationsDataset } from '../src/data/datasetFactory.ts'
+import { recalculateDatasetIntegrity, validateOperationsDataset } from '../src/data/legacyDatasetValidation.ts'
 import { validateCargoComplianceData } from '../src/data/cargoComplianceValidation.ts'
 import { parseImportedDataset } from '../src/data/datasetStore.js'
 import {
@@ -12,7 +12,7 @@ import {
   recordAdrChanges,
   setAdrRecordActive,
 } from '../src/data/adrRecordManagement.ts'
-import { validateDataset } from '../simulator/src/validate.js'
+import { validateDataset } from '../src/data/legacyDatasetValidation.js'
 
 const applicableAdr = (overrides = {}) => ({
   adrRecordId: 'adr-fuel',

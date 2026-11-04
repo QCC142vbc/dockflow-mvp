@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Archive, Box, ClipboardList, FileWarning, Package, Plus, Search, ShieldCheck, Trash2, X } from 'lucide-react'
-import { recalculateDatasetIntegrity, validateOperationsDataset } from './data/datasetFactory.ts'
+import { recalculateDatasetIntegrity, validateOperationsDataset } from './data/legacyDatasetValidation.ts'
 import { validateCargoComplianceData } from './data/cargoComplianceValidation.ts'
-import { mergeStarterMasterData } from './data/masterDataDefaults.ts'
 import { deleteContainerType, duplicateContainerType, getContainerTypeReferences, setContainerTypeActive, upsertContainerType } from './data/containerTypeLibrary.ts'
 import { appendAdrAuditHistory, deleteAdrRecord, duplicateAdrRecord, getAdrRecordReferences, recordAdrChanges, setAdrRecordActive } from './data/adrRecordManagement.ts'
 import { appendCargoAssignmentChanges, validateOperationalCargoReferenceActivity } from './data/operationalCargo.ts'
@@ -293,7 +292,7 @@ function CargoComplianceForm({ tab, initial, asNew = false, data, vehicles, onCa
 }
 
 function createForm(tab) {
-  if (tab === 'cargo') return { cargoId: newId('cargo'), cargoType: '', name: '', category: '', description: '', quantity: '1', quantityUnit: 'units', weightKg: '', volumeM3: '', containerTypeId: '', adrRecordId: '', adrRequired: false, packagingTypeId: '', temperatureProfileId: '', specialHandling: '', handlingRequirementIds: [], vehicleId: '', shipmentId: '', operationId: '', active: true, notes: '' }
+  if (tab === 'cargo') return { cargoId: newId('cargo'), cargoType: '', name: '', category: '', description: '', quantity: '', quantityUnit: '', weightKg: '', volumeM3: '', containerTypeId: '', adrRecordId: '', adrRequired: false, packagingTypeId: '', temperatureProfileId: '', specialHandling: '', handlingRequirementIds: [], vehicleId: '', shipmentId: '', operationId: '', active: true, notes: '' }
   if (tab === 'containerTypes') return { containerTypeId: newId('container'), code: '', name: '', category: 'standard', isoCategory: '', typicalUse: '', nominalLengthM: '', widthM: '', heightM: '', maxGrossWeightKg: '', tareWeightKg: '', payloadCapacityKg: '', refrigerated: false, tank: false, openTop: false, flatRack: false, temperatureControlled: false, adrCompatible: '', active: true, requiredDockCapabilityCode: '', notes: '' }
   if (tab === 'adrRecords') return { adrRecordId: newId('adr'), status: 'unknown', active: true, requiredDockCapabilityCode: '', unNumber: '', properShippingName: '', hazardClass: '', classificationCode: '', packingGroup: '', tunnelRestrictionCode: '', category: '', source: '', referenceVersion: '', notes: '', additionalNotes: '' }
   if (tab === 'handlingRequirements') return { handlingRequirementId: newId('handling'), code: '', name: '', category: 'other', active: true, requiredDockCapabilityCode: '', description: '', cargoExamples: [], attributes: {} }
@@ -371,13 +370,6 @@ export default function CargoComplianceStudio({ dataset, onSave }) {
       return false
     }
   }
-
-  useEffect(() => {
-    const current = dataset.cargoCompliance ?? EMPTY_DATA
-    if (current.catalogDefaultsVersion === '1') return
-    const initialized = mergeStarterMasterData(dataset.cargoCompliance)
-    commit(initialized, 'Initial editable master-data catalog added to this dataset.')
-  }, [dataset.cargoCompliance, dataset.datasetId])
 
   const saveRecord = (record, operation) => {
     const editExisting = formMode.initial && !formMode.asNew

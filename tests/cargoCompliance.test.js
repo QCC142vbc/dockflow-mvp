@@ -1,9 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import demoDataset from '../data/examples/demo-dataset.json' with { type: 'json' }
-import { validateOperationsDataset, recalculateDatasetIntegrity } from '../src/data/datasetFactory.ts'
-import { validateDataset } from '../simulator/src/validate.js'
-import { createStarterMasterData, mergeStarterMasterData } from '../src/data/masterDataDefaults.ts'
+import { validateOperationsDataset, recalculateDatasetIntegrity } from '../src/data/legacyDatasetValidation.ts'
+import { validateDataset } from '../src/data/legacyDatasetValidation.js'
 
 const validCargoCompliance = () => ({
   containerTypes: [{
@@ -127,70 +126,35 @@ test('continues to accept legacy datasets without Cargo & Compliance data', () =
   assert.equal(validateDataset(legacy).valid, true)
 })
 
-test('creates a versioned editable master-data catalog that validates and round-trips', () => {
-  const masterData = createStarterMasterData()
-  assert.equal(masterData.catalogDefaultsVersion, '2')
-  assert.equal(masterData.containerTypes.length, 12)
-  assert.equal(masterData.packagingTypes?.length, 12)
-  assert.equal(masterData.handlingRequirements.length, 15)
-  assert.equal(masterData.temperatureProfiles?.length, 7)
-  assert.equal(masterData.cargo.length, 20)
-  assert.ok(masterData.handlingRequirements.every((item) => item.cargoExamples?.length === 2))
-  assert.ok(masterData.packagingTypes?.every((item) => item.typicalCargo.length >= 2))
-  assert.equal(masterData.adrRecords.length, 31)
-
-  const dataset = datasetWithCargo(masterData)
-  assert.deepEqual(validateOperationsDataset(dataset), { valid: true, errors: [] })
-  assert.equal(validateDataset(dataset).valid, true)
-  const imported = JSON.parse(JSON.stringify(dataset))
-  assert.deepEqual(validateOperationsDataset(imported), { valid: true, errors: [] })
-  assert.equal(imported.cargoCompliance.packagingTypes.length, 12)
-  assert.equal(imported.cargoCompliance.temperatureProfiles.length, 7)
-})
-
-test('starter catalog migration preserves user records and does not reapply after initialization', () => {
-  const userContainer = {
-    containerTypeId: 'container-user',
-    code: '20STD',
-    name: 'User Standard Container',
-    category: 'standard',
-    nominalLengthM: 5.9,
-    widthM: 2.35,
-    heightM: 2.39,
-    maxGrossWeightKg: 30000,
-    refrigerated: false,
-    tank: false,
-    openTop: false,
-    flatRack: false,
-    active: true,
-  }
-  const migrated = mergeStarterMasterData({
-    ...validCargoCompliance(),
-    cargo: [],
-    containerTypes: [userContainer],
-  })
-  assert.equal(migrated.containerTypes.find((record) => record.containerTypeId === userContainer.containerTypeId)?.name, userContainer.name)
-  assert.equal(migrated.containerTypes.some((record) => record.containerTypeId === 'container-20-standard'), false)
-  assert.ok(migrated.cargo.length > 0)
-
-  const afterUserEdit = {
-    ...migrated,
-    cargo: migrated.cargo.map((record) => ({ ...record, name: `Custom ${record.name}` })),
-  }
-  assert.equal(mergeStarterMasterData(afterUserEdit), afterUserEdit)
-  assert.ok(afterUserEdit.cargo.every((record) => record.name.startsWith('Custom ')))
-})
-
 test('validates packaging references, ADR-required references, and temperature ranges', () => {
-  const data = createStarterMasterData()
+  const data = validCargoCompliance()
+  data.packagingTypes = [{
+    packagingTypeId: 'pack-cardboard',
+    name: 'Cardboard box',
+    material: 'Cardboard',
+    reusable: false,
+    stackable: true,
+    typicalCargo: ['Goods'],
+    active: true,
+  }]
+  data.temperatureProfiles = [{
+    temperatureProfileId: 'temp-frozen',
+    name: 'Frozen',
+    minimumCelsius: -18,
+    maximumCelsius: -10,
+    active: true,
+  }]
+  data.cargo[0].packagingTypeId = 'pack-cardboard'
+  data.cargo[0].temperatureProfileId = 'temp-frozen'
+  data.cargo[0].adrRequired = true
   const dataset = datasetWithCargo(data)
-  const temperature = data.temperatureProfiles.find((item) => item.temperatureProfileId === 'temp-frozen')
+  const temperature = data.temperatureProfiles[0]
   assert.equal(temperature.minimumCelsius, -18)
 
   const invalid = structuredClone(data)
   invalid.cargo[0].packagingTypeId = 'missing-packaging'
   invalid.cargo[0].temperatureProfileId = 'missing-temperature'
-  invalid.cargo[1].adrRequired = true
+  invalid.cargo[0].adrRecordId = undefined
   invalid.temperatureProfiles[0].minimumCelsius = 30
   invalid.temperatureProfiles[0].maximumCelsius = 20
   const result = validateOperationsDataset(datasetWithCargo(invalid))

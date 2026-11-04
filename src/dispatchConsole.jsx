@@ -147,7 +147,7 @@ export default function DispatchConsole({ state, onAction, selectedVehicleId, on
       <div className="dispatch-subheading"><div><span className="dispatch-eyebrow">Europe/Budapest local display time</span><h3 id="operations-timeline-title">Operations Timeline</h3></div><span>{events.length} recent events</span></div>
       {events.length
         ? <ol>{events.map((event) => <li key={event.eventId} className={event.type === 'dispatch-conflict' ? 'conflict-event' : ''}><time dateTime={event.timestamp}>{timeLabel(event.timestamp)}</time><span className="timeline-event-type">{activityLabel(event.type)}</span><span>{event.description}</span></li>)}</ol>
-        : <div className="timeline-empty">Dispatch actions and simulation completions will be recorded here. No UTC timestamps are altered.</div>}
+        : <div className="timeline-empty">Manual dispatch changes will be recorded here. No UTC timestamps are altered.</div>}
     </section>
   </section>
 }

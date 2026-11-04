@@ -1,10 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import demoDataset from '../data/examples/demo-dataset.json' with { type: 'json' }
-import { validateOperationsDataset, recalculateDatasetIntegrity } from '../src/data/datasetFactory.ts'
+import { validateOperationsDataset, recalculateDatasetIntegrity } from '../src/data/legacyDatasetValidation.ts'
 import { parseImportedDataset } from '../src/data/datasetStore.js'
 import { saveOperationalCargoReferences, unassignOperationalCargo } from '../src/data/operationalCargo.ts'
-import { validateDataset } from '../simulator/src/validate.js'
+import { validateDataset } from '../src/data/legacyDatasetValidation.js'
 
 const vehicleId = demoDataset.vehicles[0].vehicleId
 const secondVehicleId = demoDataset.vehicles[1].vehicleId

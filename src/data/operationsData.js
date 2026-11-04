@@ -1,4 +1,3 @@
-import demoDataset from '../../data/examples/demo-dataset.json' with { type: 'json' }
 import { applyDispatchAction, recommendDispatch, selectNextDispatchVehicle } from './dispatchEngine.ts'
 
 export const statusMeta = {
@@ -115,10 +114,6 @@ export function rebaseOperationsState(state, now) {
     queue: (state.queue ?? []).map((vehicle) => ({ ...vehicle, arrival: displayOperationalTime(vehicle.arrivalMinutes, now, state.anchorMinutes), call: displayOperationalTime(vehicle.callMinutes, now, state.anchorMinutes) })),
     docks: (state.docks ?? []).map((dock) => ({ ...dock, appointment: dock.appointmentMinutes === null ? '—' : displayOperationalTime(dock.appointmentMinutes, now, state.anchorMinutes) })),
   }
-}
-
-export function getBundledDemoState(now = new Date()) {
-  return adaptDataset(demoDataset, now)
 }
 
 export function withWorkingOperations(dataset, state) {

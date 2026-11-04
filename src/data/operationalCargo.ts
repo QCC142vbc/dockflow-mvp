@@ -1,5 +1,5 @@
 import type { CargoAssignmentEvent, CargoComplianceData, CargoRecord, OperationsDataset } from './datasetTypes'
-import { recalculateDatasetIntegrity, validateOperationsDataset } from './datasetFactory.ts'
+import { recalculateDatasetIntegrity, validateOperationsDataset } from './legacyDatasetValidation.ts'
 
 const CARGO_ASSIGNMENT_HISTORY_LIMIT = 500
 

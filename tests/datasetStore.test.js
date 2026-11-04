@@ -2,7 +2,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import demoDataset from '../data/examples/demo-dataset.json' with { type: 'json' }
-import { recalculateDatasetIntegrity } from '../src/data/datasetFactory.ts'
+import { recalculateDatasetIntegrity } from '../src/data/legacyDatasetValidation.ts'
 import {
   deleteDataset,
   duplicateDataset,

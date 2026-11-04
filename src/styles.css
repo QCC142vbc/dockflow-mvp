@@ -21,6 +21,8 @@ button { color: inherit; }
 .site-meta { justify-content: flex-end; gap: 10px; margin-top: 7px; }
 .connection { gap: 5px; color: #8bcaa3; }
 .connection-dot, .live-dot { width: 7px; height: 7px; background: #63d790; box-shadow: 0 0 11px #63d790; border-radius: 50%; }
+.connection-dot.online { background: #63d790; box-shadow: 0 0 11px #63d790; }
+.connection-dot.local { background: #e8bd65; box-shadow: 0 0 8px #e8bd65; }
 .divider { height: 13px; width: 1px; background: #2b404c; }
 .hero-panel { max-width: 1700px; margin: 0 auto 24px; min-height: 239px; display: grid; grid-template-columns: 1.2fr .8fr; background: #0c1d26; border: 1px solid #2c7d61; box-shadow: inset 0 0 0 1px rgba(111, 222, 157, .07), 0 14px 45px rgba(0,0,0,.17); position: relative; overflow: hidden; }
 .hero-panel::after { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 42%; background: repeating-linear-gradient(135deg, transparent 0 17px, rgba(92, 211, 143, .04) 18px 19px); pointer-events: none; }

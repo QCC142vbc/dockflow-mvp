@@ -7,8 +7,8 @@ import {
 } from '../src/data/dispatchEngine.ts'
 import { advanceOperationsState, withWorkingOperations } from '../src/data/operationsData.js'
 import demoDataset from '../data/examples/demo-dataset.json' with { type: 'json' }
-import { validateOperationsDataset } from '../src/data/datasetFactory.ts'
-import { validateDataset } from '../simulator/src/validate.js'
+import { validateOperationsDataset } from '../src/data/legacyDatasetValidation.ts'
+import { validateDataset } from '../src/data/legacyDatasetValidation.js'
 
 const timestamp = '2026-10-02T18:00:00.000Z'
 

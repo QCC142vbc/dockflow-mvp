@@ -7,17 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "test": "node --test",
-    "preview": "vite preview",
-    "simulate:generate": "node simulator/src/generate.js",
-    "simulate:normal": "node simulator/src/generate.js --scenario normal",
-    "simulate:busy": "node simulator/src/generate.js --scenario busy-day",
-    "simulate:disruption": "node simulator/src/generate.js --scenario disruption",
-    "simulate:maintenance": "node simulator/src/generate.js --scenario maintenance",
-    "simulate:import": "node simulator/src/import.js",
-    "simulate:validate": "node simulator/src/validate.js",
-    "simulate:serve": "node simulator/src/server.js",
-    "simulate:cleanup": "node simulator/src/cleanup.js"
+    "test": "npm run test:unit && npm run test:components",
+    "test:unit": "node --test",
+    "test:components": "vitest run",
+    "preview": "vite preview"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -25,8 +18,12 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
     "@vitejs/plugin-react": "^4.3.3",
+    "jsdom": "^30.1.3",
     "typescript": "^5.9.3",
-    "vite": "^5.4.10"
+    "vite": "^5.4.10",
+    "vitest": "^2.1.9"
   }
 }

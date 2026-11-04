@@ -2,7 +2,7 @@
 import {
   recalculateDatasetIntegrity,
   validateOperationsDataset,
-} from './datasetFactory.ts'
+} from './legacyDatasetValidation.ts'
 
 const STORAGE_KEY = 'dockflow.datasets.v1'
 const HIDDEN_DEMO_KEY = 'dockflow.datasets.hidden-demo.v1'

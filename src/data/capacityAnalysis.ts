@@ -198,7 +198,8 @@ export function analyzeCapacity(dataset: CapacityDatasetInput | null | undefined
   const throughput = finite(kpis.throughputEstimate)
     ? kpis.throughputEstimate
     : config && finite(config.averageServiceMinutes) && config.averageServiceMinutes > 0
-      ? operationalDocks.length * 60 / config.averageServiceMinutes
+      ? operationalDocks.length * 60 / config.averageServiceMinutes *
+        (finite(config.utilizationTarget) ? config.utilizationTarget / 100 : 1)
       : null
   const arrivalRate = config && finite(config.averageArrivalIntervalMinutes) && config.averageArrivalIntervalMinutes > 0
     ? 60 / config.averageArrivalIntervalMinutes
